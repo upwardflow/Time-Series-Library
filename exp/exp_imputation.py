@@ -162,9 +162,10 @@ class Exp_Imputation(Exp_Basic):
         preds = []
         trues = []
         masks = []
-        folder_path = './test_results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        # Disable per-batch PDF output under ./test_results/ for now.
+        # folder_path = './test_results/' + setting + '/'
+        # if not os.path.exists(folder_path):
+        #     os.makedirs(folder_path)
 
         self.model.eval()
         with torch.no_grad():
@@ -197,11 +198,11 @@ class Exp_Imputation(Exp_Basic):
                 trues.append(true)
                 masks.append(mask.detach().cpu())
 
-                if i % 20 == 0:
-                    filled = true[0, :, -1].copy()
-                    filled = filled * mask[0, :, -1].detach().cpu().numpy() + \
-                             pred[0, :, -1] * (1 - mask[0, :, -1].detach().cpu().numpy())
-                    visual(true[0, :, -1], filled, os.path.join(folder_path, str(i) + '.pdf'))
+                # if i % 20 == 0:
+                #     filled = true[0, :, -1].copy()
+                #     filled = filled * mask[0, :, -1].detach().cpu().numpy() + \
+                #              pred[0, :, -1] * (1 - mask[0, :, -1].detach().cpu().numpy())
+                #     visual(true[0, :, -1], filled, os.path.join(folder_path, str(i) + '.pdf'))
 
         preds = np.concatenate(preds, 0)
         trues = np.concatenate(trues, 0)
