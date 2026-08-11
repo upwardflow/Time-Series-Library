@@ -7,11 +7,6 @@ import random
 import numpy as np
 
 if __name__ == '__main__':
-    fix_seed = 2021
-    random.seed(fix_seed)
-    torch.manual_seed(fix_seed)
-    np.random.seed(fix_seed)
-
     parser = argparse.ArgumentParser(description='TimesNet')
 
     # basic config
@@ -115,7 +110,7 @@ if __name__ == '__main__':
 
     # Augmentation
     parser.add_argument('--augmentation_ratio', type=int, default=0, help="How many times to augment")
-    parser.add_argument('--seed', type=int, default=2, help="Randomization seed")
+    parser.add_argument('--seed', type=int, default=2021, help="Randomization seed")
     parser.add_argument('--jitter', default=False, action="store_true", help="Jitter preset augmentation")
     parser.add_argument('--scaling', default=False, action="store_true", help="Scaling preset augmentation")
     parser.add_argument('--permutation', default=False, action="store_true",
@@ -140,6 +135,38 @@ if __name__ == '__main__':
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 
+    # GraphMamba
+    parser.add_argument('--stride', type=int, default=8, help='GraphMamba long-patch stride')
+    parser.add_argument('--d_state', type=int, default=16, help='Mamba state dimension')
+    parser.add_argument('--mamba_version', type=int, choices=[1, 2], default=1,
+                        help='GraphMamba Mamba implementation: 1=Mamba-1, 2=Mamba2')
+    parser.add_argument('--mamba_headdim', type=int, default=0,
+                        help='Mamba2 head dimension; 0 selects GraphMamba default')
+    parser.add_argument('--mamba_bidirectional', type=int, choices=[0, 1], default=1,
+                        help='use forward and backward temporal Mamba branches')
+    parser.add_argument('--use_graph', type=int, choices=[0, 1], default=1,
+                        help='enable the GraphMamba graph branch')
+    parser.add_argument('--use_time_mamba', type=int, choices=[0, 1], default=1,
+                        help='enable the GraphMamba temporal branch')
+    parser.add_argument('--use_patch', type=int, choices=[0, 1], default=1,
+                        help='enable GraphMamba dual-scale patching')
+    parser.add_argument('--use_decomp', type=int, choices=[0, 1], default=1,
+                        help='enable GraphMamba moving-average decomposition')
+    parser.add_argument('--graph_alpha', type=float, default=0.3,
+                        help='static graph weight in the static/adaptive graph blend')
+    parser.add_argument('--graph_top_k', type=int, default=2,
+                        help='number of static neighbors per variable')
+    parser.add_argument('--graph_sample_size', type=int, default=2000,
+                        help='training samples used to estimate the static graph')
+    parser.add_argument('--graph_sample_method', choices=['uniform', 'random', 'recent'],
+                        default='uniform', help='static graph sampling strategy')
+    parser.add_argument('--static_graph_mode', choices=['weighted', 'binary'],
+                        default='weighted', help='retain static edge weights or only topology')
+    parser.add_argument('--static_graph_only', type=int, choices=[0, 1], default=0,
+                        help='disable the adaptive graph and use only the static graph')
+    parser.add_argument('--graph_cache', type=int, choices=[0, 1], default=0,
+                        help='cache the generated static adjacency as a .npy file')
+
     # GCN
     parser.add_argument('--node_dim', type=int, default=10, help='each node embbed to dim dimentions')
     parser.add_argument('--gcn_depth', type=int, default=2, help='')
@@ -157,6 +184,15 @@ if __name__ == '__main__':
     parser.add_argument('--pos', type=int, choices=[0, 1], default=1, help='Positional Embedding. Set pos to 0 or 1')
 
     args = parser.parse_args()
+
+    # Apply the requested experiment seed after parsing so --seed controls
+    # model initialization, data shuffling, NumPy, and CUDA consistently.
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     if torch.cuda.is_available() and args.use_gpu:
         args.device = torch.device('cuda:{}'.format(args.gpu))
         print('Using GPU')
@@ -231,6 +267,11 @@ if __name__ == '__main__':
                         + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                         + f'_tvdt{int(args.tv_dt)}_tvB{int(args.tv_B)}_tvC{int(args.tv_C)}_useD{int(args.use_D)}_{args.des}_{ii}'
 
+            if args.model == 'GraphMamba':
+                setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
+                           + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
+                           + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
+
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
 
@@ -271,6 +312,11 @@ if __name__ == '__main__':
                     + f'_sl{args.seq_len}_ll{args.label_len}_pl{args.pred_len}_dm{args.d_model}_ds{args.d_ff}' \
                     + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                     + f'_tvdt{args.tv_dt}_tvB{args.tv_B}_tvC{args.tv_C}_useD{int(args.use_D)}_{args.des}_{ii}'
+
+        if args.model == 'GraphMamba':
+            setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
+                       + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
+                       + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
 
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting, test=1)
