@@ -9,6 +9,7 @@ import os
 import time
 import warnings
 import numpy as np
+import json
 from utils.dtw_metric import dtw, accelerated_dtw
 from utils.augmentation import run_augmentation, run_augmentation_single
 
@@ -39,8 +40,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return criterion
  
 
-    def vali(self, vali_data, vali_loader, criterion):
-        total_loss = []
+    def vali(self, vali_data, vali_loader, criterion, return_mae=False):
+        squared_error_sum = 0.0
+        absolute_error_sum = 0.0
+        element_count = 0
         self.model.eval()
         with torch.no_grad():
             for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in enumerate(vali_loader):
@@ -66,17 +69,20 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 pred = outputs.detach()
                 true = batch_y.detach()
 
-                loss = criterion(pred, true)
-
-                total_loss.append(loss.item())
-        total_loss = np.average(total_loss)
+                difference = pred - true
+                squared_error_sum += torch.sum(difference * difference).item()
+                if return_mae:
+                    absolute_error_sum += torch.sum(torch.abs(difference)).item()
+                element_count += true.numel()
+        total_loss = squared_error_sum / element_count
         self.model.train()
+        if return_mae:
+            return total_loss, absolute_error_sum / element_count
         return total_loss
 
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
-        test_data, test_loader = self._get_data(flag='test')
 
         path = os.path.join(self.args.checkpoints, setting)
         if not os.path.exists(path):
@@ -93,6 +99,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
+        best_epoch = 0
         for epoch in range(self.args.train_epochs):
             iter_count = 0
             train_loss = []
@@ -149,10 +156,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
             vali_loss = self.vali(vali_data, vali_loader, criterion)
-            test_loss = self.vali(test_data, test_loader, criterion)
 
-            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
-                epoch + 1, train_steps, train_loss, vali_loss, test_loss))
+            print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f}".format(
+                epoch + 1, train_steps, train_loss, vali_loss))
+            if vali_loss < early_stopping.val_loss_min:
+                best_epoch = epoch + 1
             early_stopping(vali_loss, self.model, path)
             if early_stopping.early_stop:
                 print("Early stopping")
@@ -162,6 +170,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
+        _, best_val_mae = self.vali(
+            vali_data, vali_loader, criterion, return_mae=True
+        )
+
+        validation_result = {
+            'metric_version': 'element_weighted_v1',
+            'best_mse': float(early_stopping.val_loss_min),
+            'best_mae': float(best_val_mae),
+            'best_epoch': int(best_epoch),
+            'epochs_ran': int(epoch + 1),
+        }
+        print('VALIDATION_RESULT ' + json.dumps(validation_result, sort_keys=True))
 
         return self.model
 
