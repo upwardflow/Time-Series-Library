@@ -1,17 +1,47 @@
 import argparse
+import json
 import os
+from pathlib import Path
 import torch
 import torch.backends
 from utils.print_args import print_args
 import random
 import numpy as np
 
-if __name__ == '__main__':
-    fix_seed = 2021
-    random.seed(fix_seed)
-    torch.manual_seed(fix_seed)
-    np.random.seed(fix_seed)
 
+def resolve_periodic_local_geometry(data, period, local_patch, local_stride):
+    """Resolve zero-valued local geometry from training-only correlation evidence."""
+    if local_patch < 0 or local_stride < 0:
+        raise ValueError('periodic local patch/stride must be non-negative')
+    if local_patch:
+        return local_patch, local_stride or max(1, local_patch // 2)
+    if local_stride:
+        raise ValueError(
+            'periodic_local_stride must be 0 when periodic_local_patch is auto (0)'
+        )
+
+    evidence_path = (
+        Path(__file__).resolve().parent
+        / 'logs'
+        / 'graphmamba_local_scale'
+        / f'{data}_local_scale.json'
+    )
+    if not evidence_path.exists():
+        raise FileNotFoundError(
+            f'missing training-derived local-scale evidence: {evidence_path}; '
+            f'run scripts/derive_graphmamba_local_scale.py --dataset {data}'
+        )
+    evidence = json.loads(evidence_path.read_text())
+    evidence_period = int(evidence['period'])
+    if evidence_period != period:
+        raise ValueError(
+            f'local-scale evidence period {evidence_period} does not match '
+            f'periodic_period {period}'
+        )
+    primary = evidence['primary']
+    return int(primary['selected_patch']), int(primary['selected_stride'])
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='TimesNet')
 
     # basic config
@@ -95,6 +125,8 @@ if __name__ == '__main__':
     parser.add_argument('--loss', type=str, default='MSE', help='loss function')
     parser.add_argument('--lradj', type=str, default='type1', help='adjust learning rate')
     parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
+    parser.add_argument('--test_after_train', type=int, choices=[0, 1], default=1,
+                        help='run the test split after training; set to 0 during hyperparameter search')
 
     # GPU
     parser.add_argument('--use_gpu', action='store_true', default=True, help='use gpu (default: on)')
@@ -115,7 +147,7 @@ if __name__ == '__main__':
 
     # Augmentation
     parser.add_argument('--augmentation_ratio', type=int, default=0, help="How many times to augment")
-    parser.add_argument('--seed', type=int, default=2, help="Randomization seed")
+    parser.add_argument('--seed', type=int, default=2021, help="Randomization seed")
     parser.add_argument('--jitter', default=False, action="store_true", help="Jitter preset augmentation")
     parser.add_argument('--scaling', default=False, action="store_true", help="Scaling preset augmentation")
     parser.add_argument('--permutation', default=False, action="store_true",
@@ -140,6 +172,75 @@ if __name__ == '__main__':
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 
+    # GraphMamba
+    parser.add_argument('--stride', type=int, default=8, help='GraphMamba long-patch stride')
+    parser.add_argument('--d_state', type=int, default=16, help='Mamba state dimension')
+    parser.add_argument('--mamba_version', type=int, choices=[1, 2], default=1,
+                        help='GraphMamba Mamba implementation: 1=Mamba-1, 2=Mamba2')
+    parser.add_argument('--mamba_headdim', type=int, default=0,
+                        help='Mamba2 head dimension; 0 selects GraphMamba default')
+    parser.add_argument('--mamba_bidirectional', type=int, choices=[0, 1], default=1,
+                        help='use forward and backward temporal Mamba branches')
+    parser.add_argument('--use_graph', type=int, choices=[0, 1], default=1,
+                        help='enable the GraphMamba graph branch')
+    parser.add_argument('--use_time_mamba', type=int, choices=[0, 1], default=1,
+                        help='enable the GraphMamba temporal branch')
+    parser.add_argument('--use_patch', type=int, choices=[0, 1], default=1,
+                        help='enable GraphMamba dual-scale patching')
+    parser.add_argument('--use_decomp', type=int, choices=[0, 1], default=1,
+                        help='enable GraphMamba moving-average decomposition')
+    parser.add_argument('--dual_scale_scan_mode',
+                        choices=['auto', 'joint', 'independent_shared', 'periodic_aligned'],
+                        default='auto',
+                        help='auto uses validated periodic mode on hourly ETT and independent scans elsewhere')
+    parser.add_argument('--periodic_period', type=int, default=24,
+                        help='training-derived stable period used by periodic_aligned')
+    parser.add_argument('--periodic_local_patch', type=int, default=0,
+                        help='within-period local patch length; 0 loads training-derived correlation scale')
+    parser.add_argument('--periodic_local_stride', type=int, default=0,
+                        help='local stride; 0 uses derived stride or half an explicit patch')
+    parser.add_argument('--periodic_period_stride', type=int, default=12,
+                        help='complete-period patch stride')
+    parser.add_argument('--periodic_use_adapter', type=int, choices=[0, 1], default=1,
+                        help='enable zero-initialized scale-conditioned input adaptation')
+    parser.add_argument('--graph_alpha', type=float, default=0.3,
+                        help='static graph weight in the static/adaptive graph blend')
+    parser.add_argument('--graph_top_k', type=int, default=2,
+                        help='number of static neighbors per variable')
+    parser.add_argument('--graph_sample_size', type=int, default=2000,
+                        help='training samples used to estimate the static graph')
+    parser.add_argument('--graph_sample_method', choices=['uniform', 'random', 'recent'],
+                        default='uniform', help='static graph sampling strategy')
+    parser.add_argument('--static_graph_mode', choices=['weighted', 'binary'],
+                        default='weighted', help='retain static edge weights or only topology')
+    parser.add_argument('--static_graph_only', type=int, choices=[0, 1], default=0,
+                        help='disable the adaptive graph and use only the static graph')
+    parser.add_argument('--graph_cache', type=int, choices=[0, 1], default=0,
+                        help='cache the generated static adjacency as a .npy file')
+    parser.add_argument('--gc_graph_dim', type=int, default=16,
+                        help='GraphMambaGC dynamic graph query/key dimension')
+    parser.add_argument('--gc_temperature', type=float, default=1.0,
+                        help='GraphMambaGC dynamic adjacency softmax temperature')
+    parser.add_argument('--gc_residual_init', type=float, default=0.5,
+                        help='initial graph-conditioning residual strength in (0, 1)')
+    parser.add_argument('--gc_dynamic_graph', type=int, choices=[0, 1], default=1,
+                        help='enable sample- and patch-adaptive variable graph')
+    parser.add_argument('--gc_symmetric_graph', type=int, choices=[0, 1], default=1,
+                        help='use shared projection for symmetric dynamic affinities')
+    parser.add_argument('--gc_input_modulation', type=int, choices=[0, 1], default=1,
+                        help='condition Mamba input tokens with graph context')
+    parser.add_argument('--gc_direction_fusion', type=int, choices=[0, 1], default=1,
+                        help='condition forward/backward Mamba fusion on graph context')
+    parser.add_argument('--gc_parallel_residual', type=int, choices=[0, 1], default=1,
+                        help='retain the original parallel graph residual beside graph conditioning')
+    parser.add_argument('--af_hidden_dim', type=int, default=32,
+                        help='GraphMambaAF reliability gate hidden dimension')
+    parser.add_argument('--af_mode', choices=['local', 'variable_scale', 'variable_scale_residual', 'variable_scale_lowrank', 'residual_only'],
+                        default='variable_scale_residual',
+                        help='GraphMambaAF fusion/calibration mode')
+    parser.add_argument('--af_rank', type=int, default=16,
+                        help='rank of GraphMambaAF low-rank residual correction')
+
     # GCN
     parser.add_argument('--node_dim', type=int, default=10, help='each node embbed to dim dimentions')
     parser.add_argument('--gcn_depth', type=int, default=2, help='')
@@ -157,6 +258,31 @@ if __name__ == '__main__':
     parser.add_argument('--pos', type=int, choices=[0, 1], default=1, help='Positional Embedding. Set pos to 0 or 1')
 
     args = parser.parse_args()
+
+    if args.dual_scale_scan_mode == 'auto':
+        args.dual_scale_scan_mode = (
+            'periodic_aligned'
+            if args.data in {'ETTh1', 'ETTh2'} and args.periodic_period < args.seq_len
+            else 'independent_shared'
+        )
+    if args.model == 'GraphMamba' and args.dual_scale_scan_mode == 'periodic_aligned':
+        args.periodic_local_patch, args.periodic_local_stride = (
+            resolve_periodic_local_geometry(
+                args.data,
+                args.periodic_period,
+                args.periodic_local_patch,
+                args.periodic_local_stride,
+            )
+        )
+
+    # Apply the requested experiment seed after parsing so --seed controls
+    # model initialization, data shuffling, NumPy, and CUDA consistently.
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     if torch.cuda.is_available() and args.use_gpu:
         args.device = torch.device('cuda:{}'.format(args.gpu))
         print('Using GPU')
@@ -231,11 +357,34 @@ if __name__ == '__main__':
                         + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                         + f'_tvdt{int(args.tv_dt)}_tvB{int(args.tv_B)}_tvC{int(args.tv_C)}_useD{int(args.use_D)}_{args.des}_{ii}'
 
+            if args.model in {'GraphMamba', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
+                setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
+                           + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
+                           + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
+                if args.model == 'GraphMamba':
+                    if args.dual_scale_scan_mode == 'periodic_aligned':
+                        setting += f'_smP_p{args.periodic_period}s{args.periodic_period_stride}' \
+                                   + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
+                                   + f'_a{args.periodic_use_adapter}'
+                    else:
+                        setting += f'_sm{args.dual_scale_scan_mode}'
+            if args.model == 'GraphMambaGC':
+                setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
+                           + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
+                           + f'_sym{args.gc_symmetric_graph}' \
+                           + f'_im{args.gc_input_modulation}_df{args.gc_direction_fusion}' \
+                           + f'_pr{args.gc_parallel_residual}'
+            if args.model == 'GraphMambaAF':
+                setting += f'_af{args.af_mode}_h{args.af_hidden_dim}_r{args.af_rank}'
+
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
 
-            print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-            exp.test(setting)
+            if args.test_after_train:
+                print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+                exp.test(setting)
+            else:
+                print('>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<')
             if args.use_gpu:
                 if args.gpu_type == 'mps':
                     torch.backends.mps.empty_cache()
@@ -271,6 +420,26 @@ if __name__ == '__main__':
                     + f'_sl{args.seq_len}_ll{args.label_len}_pl{args.pred_len}_dm{args.d_model}_ds{args.d_ff}' \
                     + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                     + f'_tvdt{args.tv_dt}_tvB{args.tv_B}_tvC{args.tv_C}_useD{int(args.use_D)}_{args.des}_{ii}'
+
+        if args.model in {'GraphMamba', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
+            setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
+                       + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
+                       + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
+            if args.model == 'GraphMamba':
+                if args.dual_scale_scan_mode == 'periodic_aligned':
+                    setting += f'_smP_p{args.periodic_period}s{args.periodic_period_stride}' \
+                               + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
+                               + f'_a{args.periodic_use_adapter}'
+                else:
+                    setting += f'_sm{args.dual_scale_scan_mode}'
+        if args.model == 'GraphMambaGC':
+            setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
+                       + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
+                       + f'_sym{args.gc_symmetric_graph}' \
+                       + f'_im{args.gc_input_modulation}_df{args.gc_direction_fusion}' \
+                       + f'_pr{args.gc_parallel_residual}'
+        if args.model == 'GraphMambaAF':
+            setting += f'_af{args.af_mode}_h{args.af_hidden_dim}_r{args.af_rank}'
 
         print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
         exp.test(setting, test=1)

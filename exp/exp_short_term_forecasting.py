@@ -169,9 +169,10 @@ class Exp_Short_Term_Forecast(Exp_Basic):
             print('loading model')
             self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth')))
 
-        folder_path = './test_results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        # Disable sampled forecast PDFs under ./test_results/ for now.
+        # folder_path = './test_results/' + setting + '/'
+        # if not os.path.exists(folder_path):
+        #     os.makedirs(folder_path)
 
         self.model.eval()
         with torch.no_grad():
@@ -197,10 +198,10 @@ class Exp_Short_Term_Forecast(Exp_Basic):
             trues = y
             x = x.detach().cpu().numpy()
 
-            for i in range(0, preds.shape[0], preds.shape[0] // 10):
-                gt = np.concatenate((x[i, :, 0], trues[i]), axis=0)
-                pd = np.concatenate((x[i, :, 0], preds[i, :, 0]), axis=0)
-                visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
+            # for i in range(0, preds.shape[0], preds.shape[0] // 10):
+            #     gt = np.concatenate((x[i, :, 0], trues[i]), axis=0)
+            #     pd = np.concatenate((x[i, :, 0], preds[i, :, 0]), axis=0)
+            #     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
 
         print('test shape:', preds.shape)
 

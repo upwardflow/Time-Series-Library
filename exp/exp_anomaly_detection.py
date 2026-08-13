@@ -133,9 +133,10 @@ class Exp_Anomaly_Detection(Exp_Basic):
             self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth')))
 
         attens_energy = []
-        folder_path = './test_results/' + setting + '/'
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        # No plot is written for anomaly detection; avoid creating an empty test_results directory.
+        # folder_path = './test_results/' + setting + '/'
+        # if not os.path.exists(folder_path):
+        #     os.makedirs(folder_path)
 
         self.model.eval()
         self.anomaly_criterion = nn.MSELoss(reduce=False)

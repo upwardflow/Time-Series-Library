@@ -263,12 +263,25 @@ class Dataset_Custom(Dataset):
             df_raw = ds[split_name].to_pandas()
 
         '''
-        df_raw.columns: ['date', ...(other features), target feature]
+        For M -> M forecasting, preserve every original variable name and
+        column order. Only S/MS tasks require an explicit target column and
+        place it last so the existing output slicing remains valid.
         '''
-        cols = list(df_raw.columns)
-        cols.remove(self.target)
-        cols.remove('date')
-        df_raw = df_raw[['date'] + cols + [self.target]]
+        if 'date' not in df_raw.columns:
+            raise ValueError("Custom datasets must contain a 'date' column")
+        value_columns = [column for column in df_raw.columns if column != 'date']
+        if self.features == 'M':
+            df_raw = df_raw[['date'] + value_columns]
+        else:
+            if self.target not in value_columns:
+                raise ValueError(
+                    f"Target column {self.target!r} was not found for "
+                    f"features={self.features!r}"
+                )
+            input_columns = [
+                column for column in value_columns if column != self.target
+            ]
+            df_raw = df_raw[['date'] + input_columns + [self.target]]
         num_train = int(len(df_raw) * 0.7)
         num_test = int(len(df_raw) * 0.2)
         num_vali = len(df_raw) - num_train - num_test
