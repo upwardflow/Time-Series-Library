@@ -80,6 +80,122 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             return total_loss, absolute_error_sum / element_count
         return total_loss
 
+    def evaluate_checkpoint(self, setting, flag='val'):
+        """Evaluate one frozen checkpoint with optional CMRHM diagnostics."""
+        if flag not in {'val', 'test'}:
+            raise ValueError(f'unsupported evaluation split: {flag}')
+        _, loader = self._get_data(flag=flag)
+        checkpoint = os.path.join(self.args.checkpoints, setting, 'checkpoint.pth')
+        self.model.load_state_dict(torch.load(checkpoint, map_location=self.device))
+        self.model.eval()
+
+        squared_error_sum = 0.0
+        absolute_error_sum = 0.0
+        correction_abs_sum = 0.0
+        correction_sq_sum = 0.0
+        correction_count = 0
+        fusion_gate_sum = 0.0
+        fusion_gate_sq_sum = 0.0
+        fusion_gate_count = 0
+        fusion_gate_min = float('inf')
+        fusion_gate_max = float('-inf')
+        element_count = 0
+        batch_count = 0
+        if self.device.type == 'cuda':
+            torch.cuda.reset_peak_memory_stats(self.device)
+            torch.cuda.synchronize(self.device)
+        started = time.perf_counter()
+        with torch.no_grad():
+            for batch_x, batch_y, batch_x_mark, batch_y_mark in loader:
+                batch_x = batch_x.float().to(self.device)
+                batch_y = batch_y.float().to(self.device)
+                batch_x_mark = batch_x_mark.float().to(self.device)
+                batch_y_mark = batch_y_mark.float().to(self.device)
+                dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :])
+                dec_inp = torch.cat(
+                    [batch_y[:, :self.args.label_len, :], dec_inp], dim=1
+                ).float().to(self.device)
+                outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
+                f_dim = -1 if self.args.features == 'MS' else 0
+                outputs = outputs[:, -self.args.pred_len:, f_dim:]
+                target = batch_y[:, -self.args.pred_len:, f_dim:]
+                difference = outputs - target
+                squared_error_sum += torch.sum(difference * difference).item()
+                absolute_error_sum += torch.sum(torch.abs(difference)).item()
+                element_count += target.numel()
+                batch_count += 1
+
+                module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
+                correction = getattr(module, 'last_memory_correction', None)
+                if correction is not None:
+                    correction_abs_sum += torch.sum(torch.abs(correction)).item()
+                    correction_sq_sum += torch.sum(correction * correction).item()
+                    correction_count += correction.numel()
+                fusion_gate = getattr(module, 'last_fusion_gate', None)
+                if fusion_gate is not None:
+                    fusion_gate_sum += torch.sum(fusion_gate).item()
+                    fusion_gate_sq_sum += torch.sum(fusion_gate * fusion_gate).item()
+                    fusion_gate_count += fusion_gate.numel()
+                    fusion_gate_min = min(
+                        fusion_gate_min, float(fusion_gate.min())
+                    )
+                    fusion_gate_max = max(
+                        fusion_gate_max, float(fusion_gate.max())
+                    )
+        if self.device.type == 'cuda':
+            torch.cuda.synchronize(self.device)
+        elapsed = time.perf_counter() - started
+        module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
+        gate = getattr(module, 'memory_scale', None)
+        gate_values = torch.tanh(gate.detach()).cpu() if gate is not None else None
+        result = {
+            'metric_version': 'element_weighted_v1',
+            'split': flag,
+            'mse': squared_error_sum / element_count,
+            'mae': absolute_error_sum / element_count,
+            'batches': batch_count,
+            'elements': element_count,
+            'elapsed_seconds': elapsed,
+            'milliseconds_per_batch': 1000.0 * elapsed / max(batch_count, 1),
+            'parameter_count': sum(parameter.numel() for parameter in self.model.parameters()),
+            'peak_cuda_memory_bytes': (
+                int(torch.cuda.max_memory_allocated(self.device))
+                if self.device.type == 'cuda' else 0
+            ),
+            'cmrhm_intervention': getattr(
+                self.args, 'cmrhm_old_intervention', 'intact'
+            ),
+        }
+        if correction_count:
+            result['memory_correction_mae'] = correction_abs_sum / correction_count
+            result['memory_correction_rms'] = (
+                correction_sq_sum / correction_count
+            ) ** 0.5
+        if fusion_gate_count:
+            fusion_gate_mean = fusion_gate_sum / fusion_gate_count
+            fusion_gate_variance = max(
+                fusion_gate_sq_sum / fusion_gate_count
+                - fusion_gate_mean * fusion_gate_mean,
+                0.0,
+            )
+            result.update({
+                'fusion_gate_mean': fusion_gate_mean,
+                'fusion_gate_std': fusion_gate_variance ** 0.5,
+                'fusion_gate_min': fusion_gate_min,
+                'fusion_gate_max': fusion_gate_max,
+                'fusion_gate_count': fusion_gate_count,
+            })
+        if gate_values is not None:
+            result.update({
+                'gate_mean': float(gate_values.mean()),
+                'gate_abs_mean': float(gate_values.abs().mean()),
+                'gate_min': float(gate_values.min()),
+                'gate_max': float(gate_values.max()),
+                'gate_values': gate_values.tolist(),
+            })
+        print('EVALUATION_RESULT ' + json.dumps(result, sort_keys=True))
+        return result
+
     def train(self, setting):
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')

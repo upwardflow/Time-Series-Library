@@ -26,7 +26,7 @@ TEST_PATTERN = re.compile(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=("GraphMamba", "GraphMambaGC", "GraphMambaAF", "GraphMambaSD", "GraphMambaGF", "GraphMambaRG", "GraphMambaSTC", "GraphMambaRecent", "GraphMambaCMRHM"), required=True)
+    parser.add_argument("--model", choices=("GraphMamba", "GraphMambaGC", "GraphMambaAF", "GraphMambaSD", "GraphMambaGF", "GraphMambaRG", "GraphMambaSTC", "GraphMambaRecent", "GraphMambaCMRHM", "GraphMambaCMRHMConcat", "GraphMambaCMRHMNoDiff", "GraphMambaCMRHMGlobalGate"), required=True)
     parser.add_argument("--candidate", required=True)
     parser.add_argument(
         "--dataset", choices=("ETTh1", "ETTh2", "ETTm1", "ETTm2"), default="ETTh1"
