@@ -13,6 +13,51 @@ from layers.GraphMamba_Layers import FlattenHead, ParallelGraphMixer, PatchEmbed
 from utils.graph_utils import generate_adjacency
 
 
+class GraphResidualMambaFusion(nn.Module):
+    """Use the graph state as a base and gate the temporal Mamba increment."""
+
+    def __init__(
+        self,
+        d_model: int,
+        hidden_dim: int,
+        initial_mamba_weight: float,
+    ):
+        super().__init__()
+        if hidden_dim < 1:
+            raise ValueError("agf_hidden_dim must be positive")
+        if not 0.0 < initial_mamba_weight < 1.0:
+            raise ValueError("agf_initial_mamba_weight must be in (0, 1)")
+
+        self.temporal_norm = nn.LayerNorm(d_model)
+        self.graph_norm = nn.LayerNorm(d_model)
+        self.gate = nn.Sequential(
+            nn.Linear(3 * d_model, hidden_dim),
+            nn.GELU(),
+            nn.Linear(hidden_dim, 1),
+        )
+        initial_logit = torch.logit(torch.tensor(initial_mamba_weight)).item()
+        nn.init.zeros_(self.gate[-1].weight)
+        nn.init.constant_(self.gate[-1].bias, initial_logit)
+        self.last_gate = None
+
+    def forward(self, temporal: torch.Tensor, graph: torch.Tensor) -> torch.Tensor:
+        # Pool only for reliability estimation. The fused states retain the full
+        # patch resolution used by the forecasting head.
+        temporal_summary = self.temporal_norm(temporal.mean(dim=-1))
+        graph_summary = self.graph_norm(graph.mean(dim=-1))
+        descriptor = torch.cat(
+            [
+                temporal_summary,
+                graph_summary,
+                torch.abs(temporal_summary - graph_summary),
+            ],
+            dim=-1,
+        )
+        mamba_weight = torch.sigmoid(self.gate(descriptor)).unsqueeze(-1)
+        self.last_gate = mamba_weight.detach() if not self.training else None
+        return graph + mamba_weight * temporal
+
+
 class Model(nn.Module):
     def __init__(self, configs):
         super().__init__()
@@ -40,6 +85,17 @@ class Model(nn.Module):
         self.use_patch = bool(configs.use_patch)
         self.use_time_mamba = bool(configs.use_time_mamba)
         self.use_graph = bool(configs.use_graph)
+        self.graph_mamba_fusion = getattr(
+            configs, "graph_mamba_fusion", "fixed_sum"
+        )
+        if self.graph_mamba_fusion not in {
+            "fixed_sum",
+            "graph_residual_gate",
+        }:
+            raise ValueError(
+                "graph_mamba_fusion must be 'fixed_sum' or "
+                "'graph_residual_gate'"
+            )
         requested_scan_mode = getattr(configs, "dual_scale_scan_mode", "auto")
         if requested_scan_mode == "auto":
             configured_period = int(getattr(configs, "periodic_period", 24))
@@ -68,6 +124,16 @@ class Model(nn.Module):
             )
         if not self.use_time_mamba and not self.use_graph:
             raise ValueError("At least one of use_time_mamba or use_graph must be enabled")
+        if self.graph_mamba_fusion == "graph_residual_gate" and not (
+            self.use_time_mamba and self.use_graph
+        ):
+            raise ValueError(
+                "graph_residual_gate requires both Mamba and graph branches"
+            )
+        if self.graph_mamba_fusion == "graph_residual_gate" and self.use_periodic_multiscale:
+            raise ValueError(
+                "graph_residual_gate currently requires a non-periodic scan mode"
+            )
         if self.use_decomp:
             self.decomposition = series_decomp(configs.moving_avg)
             self.trend_projection = nn.Linear(self.seq_len, self.pred_len)
@@ -240,6 +306,21 @@ class Model(nn.Module):
             nn.init.zeros_(self.periodic_scale_conditioner[-1].weight)
             nn.init.zeros_(self.periodic_scale_conditioner[-1].bias)
 
+        self.branch_fusion = None
+        self.last_fusion_gate = None
+        if self.graph_mamba_fusion == "graph_residual_gate":
+            # The candidate adapter must not change seeded initialization or the
+            # subsequent data-loader/dropout RNG trajectory of the base model.
+            cpu_rng_state = torch.get_rng_state()
+            self.branch_fusion = GraphResidualMambaFusion(
+                d_model=self.d_model,
+                hidden_dim=int(getattr(configs, "agf_hidden_dim", 32)),
+                initial_mamba_weight=float(
+                    getattr(configs, "agf_initial_mamba_weight", 0.1)
+                ),
+            )
+            torch.set_rng_state(cpu_rng_state)
+
     def _apply_periodic_scale_adapter(
         self,
         tokens: torch.Tensor,
@@ -324,7 +405,11 @@ class Model(nn.Module):
             else:
                 temporal_output = 0
             graph_output = self.graph_mixer(tokens) if self.use_graph else 0
-            fused_output = temporal_output + graph_output
+            if self.branch_fusion is not None:
+                fused_output = self.branch_fusion(temporal_output, graph_output)
+                self.last_fusion_gate = self.branch_fusion.last_gate
+            else:
+                fused_output = temporal_output + graph_output
         output = self.head(fused_output) + trend_output
         return output * stdev + means
 

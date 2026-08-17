@@ -127,6 +127,8 @@ if __name__ == '__main__':
     parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
     parser.add_argument('--test_after_train', type=int, choices=[0, 1], default=1,
                         help='run the test split after training; set to 0 during hyperparameter search')
+    parser.add_argument('--evaluation_split', choices=['test', 'val'], default='test',
+                        help='split used by an is_training=0 checkpoint evaluation')
 
     # GPU
     parser.add_argument('--use_gpu', action='store_true', default=True, help='use gpu (default: on)')
@@ -203,6 +205,10 @@ if __name__ == '__main__':
                         help='complete-period patch stride')
     parser.add_argument('--periodic_use_adapter', type=int, choices=[0, 1], default=1,
                         help='enable zero-initialized scale-conditioned input adaptation')
+    parser.add_argument('--period_norm_factor', type=int, choices=[1, 4, 6], default=1,
+                        help='native samples per physical hour for GraphMambaPeriodNorm')
+    parser.add_argument('--period_norm_recent_len', type=int, default=96,
+                        help='native-resolution recent window for GraphMambaPeriodNorm')
     parser.add_argument('--graph_alpha', type=float, default=0.3,
                         help='static graph weight in the static/adaptive graph blend')
     parser.add_argument('--graph_top_k', type=int, default=2,
@@ -240,6 +246,15 @@ if __name__ == '__main__':
                         help='GraphMambaAF fusion/calibration mode')
     parser.add_argument('--af_rank', type=int, default=16,
                         help='rank of GraphMambaAF low-rank residual correction')
+    parser.add_argument(
+        '--cmrhm_old_intervention',
+        choices=['intact', 'batch_shuffle', 'temporal_shuffle', 'reverse',
+                 'recent_mean', 'noise'],
+        default='intact',
+        help='evaluation-time intervention on the compressed old-history branch',
+    )
+    parser.add_argument('--cmrhm_noise_std', type=float, default=1.0,
+                        help='normalized noise scale for the CMRHM noise intervention')
 
     # GCN
     parser.add_argument('--node_dim', type=int, default=10, help='each node embbed to dim dimentions')
@@ -357,7 +372,7 @@ if __name__ == '__main__':
                         + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                         + f'_tvdt{int(args.tv_dt)}_tvB{int(args.tv_B)}_tvC{int(args.tv_C)}_useD{int(args.use_D)}_{args.des}_{ii}'
 
-            if args.model in {'GraphMamba', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
+            if args.model in {'GraphMamba', 'GraphMambaPeriodNorm', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
                 setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
                            + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
                            + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
@@ -368,6 +383,11 @@ if __name__ == '__main__':
                                    + f'_a{args.periodic_use_adapter}'
                     else:
                         setting += f'_sm{args.dual_scale_scan_mode}'
+                if args.model == 'GraphMambaPeriodNorm':
+                    setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
+                               + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
+                               + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
+                               + f'_a{args.periodic_use_adapter}'
             if args.model == 'GraphMambaGC':
                 setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
                            + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
@@ -421,7 +441,7 @@ if __name__ == '__main__':
                     + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                     + f'_tvdt{args.tv_dt}_tvB{args.tv_B}_tvC{args.tv_C}_useD{int(args.use_D)}_{args.des}_{ii}'
 
-        if args.model in {'GraphMamba', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
+        if args.model in {'GraphMamba', 'GraphMambaPeriodNorm', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
             setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
                        + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
                        + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
@@ -432,6 +452,11 @@ if __name__ == '__main__':
                                + f'_a{args.periodic_use_adapter}'
                 else:
                     setting += f'_sm{args.dual_scale_scan_mode}'
+            if args.model == 'GraphMambaPeriodNorm':
+                setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
+                           + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
+                           + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
+                           + f'_a{args.periodic_use_adapter}'
         if args.model == 'GraphMambaGC':
             setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
                        + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
@@ -441,8 +466,12 @@ if __name__ == '__main__':
         if args.model == 'GraphMambaAF':
             setting += f'_af{args.af_mode}_h{args.af_hidden_dim}_r{args.af_rank}'
 
-        print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-        exp.test(setting, test=1)
+        if args.evaluation_split == 'val':
+            print('>>>>>>>evaluating validation checkpoint : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+            exp.evaluate_checkpoint(setting, flag='val')
+        else:
+            print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+            exp.test(setting, test=1)
         if args.use_gpu:
             if args.gpu_type == 'mps':
                 torch.backends.mps.empty_cache()
