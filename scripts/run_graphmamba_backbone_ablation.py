@@ -14,6 +14,7 @@ import csv
 import json
 import os
 import re
+import selectors
 import shlex
 import subprocess
 import sys
@@ -185,18 +186,38 @@ def execute(
             stderr=subprocess.STDOUT, text=True, bufsize=1,
         )
         assert process.stdout is not None
-        try:
-            for line in process.stdout:
-                print(line, end="", flush=True)
-                handle.write(line)
-                handle.flush()
-                match = pattern.match(line.strip())
-                if match:
-                    result = json.loads(match.group(1))
-            return_code = process.wait(timeout=timeout_seconds)
-        except subprocess.TimeoutExpired:
-            process.terminate()
-            return_code = 124
+        selector = selectors.DefaultSelector()
+        selector.register(process.stdout, selectors.EVENT_READ)
+        deadline = started + timeout_seconds
+        while True:
+            for key, _ in selector.select(timeout=1.0):
+                line = key.fileobj.readline()
+                if line:
+                    print(line, end="", flush=True)
+                    handle.write(line)
+                    handle.flush()
+                    match = pattern.match(line.strip())
+                    if match:
+                        result = json.loads(match.group(1))
+            if process.poll() is not None:
+                for line in process.stdout:
+                    print(line, end="", flush=True)
+                    handle.write(line)
+                    match = pattern.match(line.strip())
+                    if match:
+                        result = json.loads(match.group(1))
+                return_code = process.returncode
+                break
+            if time.monotonic() >= deadline:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+                return_code = 124
+                break
+        selector.close()
     return return_code, result, time.monotonic() - started
 
 
