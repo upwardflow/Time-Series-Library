@@ -3,7 +3,7 @@
 
 The runner does not tune models. It preserves dataset/model presets from the
 repository's official scripts while fixing seq_len=336, seed=2021, the data
-split, checkpoint selection, and metric implementation. Frozen one-shot CMRHM
+split, checkpoint selection, and metric implementation. Frozen one-shot TimeRole
 records are reused instead of reading already-consumed test splits again.
 """
 
@@ -33,7 +33,9 @@ MODELS = (
     "iTransformer",
     "TimeMixer",
     "TimesNet",
-    "GraphMambaCMRHM",
+    "SMamba",
+    "MSGNet",
+    "TimeRole",
 )
 DATASET_ORDER = ("ETTh1", "ETTh2", "ETTm1", "ETTm2", "weather", "solar")
 HORIZONS = (96, 192, 336, 720)
@@ -127,7 +129,7 @@ def validate_data() -> None:
         raise RuntimeError("\n".join(failures))
 
 
-def model_preset(model: str, dataset: str) -> dict[str, object]:
+def model_preset(model: str, dataset: str, horizon: int) -> dict[str, object]:
     large = False
     if model == "DLinear":
         return dict(label_len=48, e_layers=2, d_model=32, d_ff=64, n_heads=4,
@@ -152,18 +154,77 @@ def model_preset(model: str, dataset: str) -> dict[str, object]:
                     n_heads=8, batch_size=16 if large else DATASETS[dataset].batch_size,
                     learning_rate=lr, epochs=10, patience=3)
     if model == "TimeMixer":
+        stable_dataset = dataset in {"ETTm2", "weather"}
         return dict(label_len=0, e_layers=2 if dataset.startswith("ETT") else 3,
                     d_model=16, d_ff=32,
                     n_heads=4, batch_size=DATASETS[dataset].batch_size,
-                    learning_rate=1e-2, epochs=20 if dataset in {"weather", "solar"} else 10,
-                    patience=10, down_sampling_layers=3,
+                    learning_rate=1e-4 if stable_dataset else 1e-2,
+                    epochs=20 if dataset in {"weather", "solar"} else 10,
+                    patience=3 if stable_dataset else 10, down_sampling_layers=3,
                     down_sampling_window=2, down_sampling_method="avg")
     if model == "TimesNet":
         d_model, d_ff, batch_size = 32, 32, DATASETS[dataset].batch_size
         return dict(label_len=48, e_layers=2, d_model=d_model, d_ff=d_ff,
                     n_heads=4, batch_size=batch_size, learning_rate=1e-4,
                     epochs=10, patience=3, top_k=5)
-    if model == "GraphMambaCMRHM":
+    if model == "SMamba":
+        # Architecture and learning rates follow the official S-Mamba scripts;
+        # only seq_len is fixed to 336 by the unified comparison protocol.
+        dimensions = {
+            "ETTh1": (256, 256),
+            "ETTh2": (256, 256),
+            "ETTm1": (256, 256) if horizon == 96 else (128, 128),
+            "ETTm2": (256, 256) if horizon == 96 else (128, 128),
+            "weather": (512, 512),
+            "solar": (512, 512),
+        }
+        learning_rates = {
+            "ETTh1": {96: 7e-5, 192: 7e-5, 336: 5e-5, 720: 5e-5},
+            "ETTh2": {96: 4e-5, 192: 4e-5, 336: 3e-5, 720: 7e-5},
+            "ETTm1": {96: 5e-5, 192: 5e-5, 336: 5e-5, 720: 5e-5},
+            "ETTm2": {96: 5e-5, 192: 5e-5, 336: 3e-5, 720: 5e-5},
+            "weather": {h: 5e-5 for h in HORIZONS},
+            "solar": {h: 5e-5 for h in HORIZONS},
+        }
+        d_model, d_ff = dimensions[dataset]
+        return dict(label_len=48, e_layers=3 if dataset in {"weather", "solar"} else 2,
+                    d_model=d_model, d_ff=d_ff, d_state=2, n_heads=4,
+                    batch_size=DATASETS[dataset].batch_size,
+                    learning_rate=learning_rates[dataset][horizon],
+                    epochs=5 if dataset in {"weather", "solar"} else 10,
+                    patience=3)
+    if model == "MSGNet":
+        # Official MSGNet capacity family, evaluated with the common lookback.
+        if dataset == "ETTh1":
+            d_model, d_ff = ((16, 32) if horizon == 720 else (32, 64))
+            e_layers, top_k = (2 if horizon == 336 else 1), 3
+            conv_channel, dropout, epochs = 32, 0.1, 10
+        elif dataset == "ETTh2":
+            d_model, d_ff, e_layers, top_k = 16, 32, 2, 5
+            conv_channel, dropout, epochs = 32, 0.1, 10
+        elif dataset == "ETTm1":
+            d_model, d_ff, e_layers, top_k = 32, 32, 1, 3
+            conv_channel = 32 if horizon == 96 else 16
+            dropout, epochs = 0.1, 10
+        elif dataset == "ETTm2":
+            d_model, e_layers, top_k = 32, 2, 3
+            d_ff = 64 if horizon in {192, 720} else 32
+            conv_channel, dropout, epochs = 32, 0.3, 10
+        elif dataset == "weather":
+            d_model, d_ff, top_k = 64, 128, 5
+            e_layers = 1 if horizon == 336 else 2
+            conv_channel, dropout = 32, 0.1
+            epochs = 3 if horizon == 96 else 10
+        else:
+            d_model, d_ff, e_layers, top_k = 32, 64, 2, 3
+            conv_channel, dropout, epochs = 32, 0.1, 10
+        return dict(label_len=48, e_layers=e_layers, d_model=d_model,
+                    d_ff=d_ff, n_heads=4,
+                    batch_size=DATASETS[dataset].batch_size,
+                    learning_rate=1e-4, epochs=epochs, patience=3,
+                    dropout=dropout, top_k=top_k,
+                    conv_channel=conv_channel, skip_channel=32)
+    if model == "TimeRole":
         return dict(label_len=48, e_layers=1, d_model=64, d_ff=128,
                     n_heads=8, batch_size=DATASETS[dataset].batch_size,
                     learning_rate=5e-4, epochs=100, patience=6,
@@ -173,7 +234,7 @@ def model_preset(model: str, dataset: str) -> dict[str, object]:
 
 def build_command(model: str, dataset: str, horizon: int, gpu: int) -> list[str]:
     config = DATASETS[dataset]
-    preset = model_preset(model, dataset)
+    preset = model_preset(model, dataset, horizon)
     name = slug(model, dataset, horizon)
     command = [
         sys.executable, "-u", str(RUN_PY),
@@ -187,18 +248,22 @@ def build_command(model: str, dataset: str, horizon: int, gpu: int) -> list[str]
         "--c_out", str(config.channels), "--d_model", str(preset["d_model"]),
         "--d_ff", str(preset["d_ff"]), "--n_heads", str(preset["n_heads"]),
         "--e_layers", str(preset["e_layers"]), "--d_layers", "1", "--factor", "3",
-        "--dropout", "0.1", "--batch_size", str(preset["batch_size"]),
+        "--dropout", str(preset.get("dropout", 0.1)),
+        "--batch_size", str(preset["batch_size"]),
         "--learning_rate", str(preset["learning_rate"]), "--train_epochs", str(preset["epochs"]),
         "--patience", str(preset["patience"]), "--lradj", "type1",
         "--num_workers", "0", "--gpu", str(gpu), "--des", name, "--itr", "1",
         "--checkpoints", str(OUTPUT / "checkpoints"), "--test_after_train", "1",
     ]
-    for key in ("patch_len", "stride", "top_k", "down_sampling_layers", "down_sampling_window"):
+    for key in ("patch_len", "stride", "top_k", "down_sampling_layers", "down_sampling_window",
+                "conv_channel", "skip_channel"):
         if key in preset:
             command.extend(["--" + key, str(preset[key])])
     if "down_sampling_method" in preset:
         command.extend(["--down_sampling_method", str(preset["down_sampling_method"])])
-    if model == "GraphMambaCMRHM":
+    if model == "SMamba":
+        command.extend(["--d_state", str(preset["d_state"]), "--use_norm", "1"])
+    if model == "TimeRole":
         command.extend([
             "--d_state", "32", "--d_conv", "2", "--expand", "2",
             "--mamba_version", "1", "--mamba_bidirectional", "1",
@@ -214,15 +279,15 @@ def build_command(model: str, dataset: str, horizon: int, gpu: int) -> list[str]
     return command
 
 
-def frozen_cmrhm_source(dataset: str, horizon: int) -> Path:
-    """Return the protocol-unified, independent-shared CMRHM record."""
-    return ROOT / "logs/cmrhm_unified_main/records" / (
-        f"cmrhm_{dataset.lower()}_p{horizon}_s{SEED}.json"
+def frozen_timerole_source(dataset: str, horizon: int) -> Path:
+    """Return the protocol-unified, independent-shared TimeRole record."""
+    return ROOT / "logs/timerole_unified_main/records" / (
+        f"timerole_{dataset.lower()}_p{horizon}_s{SEED}.json"
     )
 
 
-def reuse_frozen_cmrhm(dataset: str, horizon: int, destination: Path) -> bool:
-    source = frozen_cmrhm_source(dataset, horizon)
+def reuse_frozen_timerole(dataset: str, horizon: int, destination: Path) -> bool:
+    source = frozen_timerole_source(dataset, horizon)
     if not source.is_file():
         return False
     payload = json.loads(source.read_text(encoding="utf-8"))
@@ -236,9 +301,9 @@ def reuse_frozen_cmrhm(dataset: str, horizon: int, destination: Path) -> bool:
         or "test_mse" not in payload
         or "test_mae" not in payload
     ):
-        raise RuntimeError(f"invalid frozen CMRHM record: {source}")
+        raise RuntimeError(f"invalid frozen TimeRole record: {source}")
     normalized = {
-        "status": "completed", "model": "GraphMambaCMRHM", "dataset": dataset,
+        "status": "completed", "model": "TimeRole", "dataset": dataset,
         "pred_len": horizon, "seq_len": 336, "seed": SEED,
         "scan_mode": "independent_shared",
         "validation_best_mse": validation_mse,
@@ -246,11 +311,11 @@ def reuse_frozen_cmrhm(dataset: str, horizon: int, destination: Path) -> bool:
         "test_mse": payload["test_mse"], "test_mae": payload["test_mae"],
         "checkpoint_selected_by": "validation_best_mse",
         "test_access": "reused_frozen_one_shot_record_no_new_test_read",
-        "result_source": "reused_frozen_cmrhm",
+        "result_source": "reused_frozen_timerole",
         "source_record": str(source), "recorded_at": datetime.now().astimezone().isoformat(),
     }
     atomic_json(destination, normalized)
-    print(f"REUSED frozen CMRHM: {dataset} {horizon}", flush=True)
+    print(f"REUSED frozen TimeRole: {dataset} {horizon}", flush=True)
     return True
 
 
@@ -269,8 +334,8 @@ def parse_log(text: str) -> tuple[dict[str, object] | None, dict[str, float] | N
 
 def run_one(model: str, dataset: str, horizon: int, args: argparse.Namespace) -> int:
     destination = record_path(model, dataset, horizon)
-    if model == "GraphMambaCMRHM" and not args.dry_run:
-        if reuse_frozen_cmrhm(dataset, horizon, destination):
+    if model == "TimeRole" and not args.dry_run:
+        if reuse_frozen_timerole(dataset, horizon, destination):
             return 0
     if args.resume and completed(destination):
         print(f"SKIP completed: {destination.name}", flush=True)

@@ -94,6 +94,16 @@ if __name__ == '__main__':
     parser.add_argument('--d_layers', type=int, default=1, help='num of decoder layers')
     parser.add_argument('--d_ff', type=int, default=2048, help='dimension of fcn')
     parser.add_argument('--moving_avg', type=int, default=25, help='window size of moving average')
+    parser.add_argument('--irpa_revise_len', type=int, default=96,
+                        help='refined recent-window length for IRPA comparisons')
+    parser.add_argument('--irpa_topk', type=int, default=3,
+                        help='number of similar historical patches used by IRPA')
+    parser.add_argument('--timerole_hidden_dim', '--cmrhm_hidden_dim',
+                        dest='timerole_hidden_dim', type=int, default=32,
+                        help='hidden dimension of the TimeRole history-correction branch')
+    parser.add_argument('--timerole_memory_pool', '--cmrhm_memory_pool',
+                        dest='timerole_memory_pool', type=int, default=16,
+                        help='old-history average-pooling width for TimeRole')
     parser.add_argument('--factor', type=int, default=1, help='attn factor')
     parser.add_argument('--distil', action='store_false',
                         help='whether to use distilling in encoder, using this argument means not using distilling',
@@ -247,14 +257,16 @@ if __name__ == '__main__':
     parser.add_argument('--af_rank', type=int, default=16,
                         help='rank of GraphMambaAF low-rank residual correction')
     parser.add_argument(
-        '--cmrhm_old_intervention',
+        '--timerole_old_intervention', '--cmrhm_old_intervention',
+        dest='timerole_old_intervention',
         choices=['intact', 'batch_shuffle', 'temporal_shuffle', 'reverse',
                  'recent_mean', 'noise'],
         default='intact',
         help='evaluation-time intervention on the compressed old-history branch',
     )
-    parser.add_argument('--cmrhm_noise_std', type=float, default=1.0,
-                        help='normalized noise scale for the CMRHM noise intervention')
+    parser.add_argument('--timerole_noise_std', '--cmrhm_noise_std',
+                        dest='timerole_noise_std', type=float, default=1.0,
+                        help='normalized noise scale for the TimeRole noise intervention')
 
     # GCN
     parser.add_argument('--node_dim', type=int, default=10, help='each node embbed to dim dimentions')

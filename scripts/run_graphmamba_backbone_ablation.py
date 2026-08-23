@@ -4,7 +4,7 @@
 The script is deliberately validation-only.  Each job trains from a fresh random
 initialization, preserves the 336-point data window / recent-96 backbone input,
 and evaluates the selected checkpoint over the complete validation split. It
-supports both the Recent-only control and the CMRHM-active complete model.
+supports both the Recent-only control and the TimeRole-active complete model.
 """
 
 from __future__ import annotations
@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 RUN_PY = ROOT / "run.py"
 DEFAULT_OUTPUTS = {
     "GraphMambaRecent": ROOT / "logs" / "graphmamba_backbone_ablation",
-    "GraphMambaCMRHM": ROOT / "logs" / "cmrhm_backbone_ablation",
-    "GraphMambaCMRHMAGF": ROOT / "logs" / "cmrhm_adaptive_fusion",
+    "TimeRole": ROOT / "logs" / "timerole_backbone_ablation",
+    "TimeRoleAGF": ROOT / "logs" / "timerole_adaptive_fusion",
 }
 DATASETS = ("ETTm1", "ETTm2")
 HORIZONS = (96, 720)
@@ -53,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=2021)
     parser.add_argument(
         "--model",
-        choices=("GraphMambaRecent", "GraphMambaCMRHM", "GraphMambaCMRHMAGF"),
+        choices=("GraphMambaRecent", "TimeRole", "TimeRoleAGF"),
         default="GraphMambaRecent",
     )
     parser.add_argument("--output-dir", type=Path)
@@ -83,8 +83,8 @@ def candidate(
 ) -> str:
     prefix = {
         "GraphMambaRecent": "table2",
-        "GraphMambaCMRHM": "cmrhm_backbone",
-        "GraphMambaCMRHMAGF": "cmrhm_agf",
+        "TimeRole": "timerole_backbone",
+        "TimeRoleAGF": "timerole_agf",
     }[model]
     return f"{prefix}_{dataset.lower()}_p{horizon}_{variant}_s{seed}"
 
@@ -139,7 +139,7 @@ def build_train_command(
         "--num_workers", "0", "--gpu", str(args.gpu),
         "--checkpoints", str(args.output_dir / "checkpoints"),
         "--des", name, "--itr", "1", "--test_after_train", "0",
-        "--cmrhm_old_intervention", "intact",
+        "--timerole_old_intervention", "intact",
     ]
 
 

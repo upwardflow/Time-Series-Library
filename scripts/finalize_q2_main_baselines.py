@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate the six-dataset Q2 baseline records into CSV and Markdown."""
+"""Aggregate the five-dataset main-paper baseline records into CSV and Markdown."""
 
 from __future__ import annotations
 
@@ -11,8 +11,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "logs" / "q2_main_baselines"
-MODELS = ("DLinear", "PatchTST", "iTransformer", "TimeMixer", "TimesNet", "GraphMambaCMRHM")
-DATASETS = ("ETTh1", "ETTh2", "ETTm1", "ETTm2", "weather", "solar")
+TIMEMIXER_STABILITY = ROOT / "logs" / "q2_timemixer_stability" / "summary.csv"
+MODELS = (
+    "DLinear", "PatchTST", "iTransformer", "TimeMixer", "TimesNet",
+    "SMamba", "MSGNet", "TimeRole",
+)
+DATASETS = ("ETTh1", "ETTh2", "ETTm1", "ETTm2", "weather")
 HORIZONS = (96, 192, 336, 720)
 SEED = 2021
 NUMERICAL_DIVERGENCE_MSE = 10.0
@@ -22,12 +26,30 @@ def slug(model: str, dataset: str, horizon: int) -> str:
     return f"{model.lower()}_{dataset.lower()}_sl336_pl{horizon}_s{SEED}"
 
 
+def record_path(model: str, dataset: str, horizon: int) -> Path:
+    # TimeRole was frozen before the manuscript rename; retain provenance while
+    # presenting the final model name in aggregate outputs.
+    stored_model = "GraphMambaCMRHM" if model == "TimeRole" else model
+    return OUTPUT / "records" / f"{slug(stored_model, dataset, horizon)}.json"
+
+
+def load_timemixer_stability() -> dict[tuple[str, int], dict[str, str]]:
+    if not TIMEMIXER_STABILITY.is_file():
+        return {}
+    with TIMEMIXER_STABILITY.open(newline="", encoding="utf-8") as handle:
+        return {
+            (row["dataset"], int(row["horizon"])): row
+            for row in csv.DictReader(handle)
+        }
+
+
 def main() -> int:
     rows, missing, failed, unstable = [], [], [], []
+    timemixer_stability = load_timemixer_stability()
     for model in MODELS:
         for dataset in DATASETS:
             for horizon in HORIZONS:
-                path = OUTPUT / "records" / f"{slug(model, dataset, horizon)}.json"
+                path = record_path(model, dataset, horizon)
                 if not path.is_file():
                     missing.append(str(path))
                     continue
@@ -35,8 +57,9 @@ def main() -> int:
                 if payload.get("status") != "completed" or "test_mse" not in payload:
                     failed.append(str(path))
                     continue
-                mse = float(payload["test_mse"])
-                mae = float(payload["test_mae"])
+                stable = timemixer_stability.get((dataset, horizon)) if model == "TimeMixer" else None
+                mse = float(stable["test_mse"]) if stable else float(payload["test_mse"])
+                mae = float(stable["test_mae"]) if stable else float(payload["test_mae"])
                 quality = (
                     "numerically_unstable"
                     if not math.isfinite(mse)
@@ -49,11 +72,14 @@ def main() -> int:
                 rows.append({
                     "model": model, "dataset": dataset, "horizon": horizon,
                     "seed": SEED, "seq_len": 336,
-                    "validation_mse": payload.get("validation_best_mse"),
-                    "validation_mae": payload.get("validation_best_mae"),
+                    "validation_mse": (float(stable["validation_mse"])
+                                       if stable else payload.get("validation_best_mse")),
+                    "validation_mae": (float(stable["validation_mae"])
+                                       if stable else payload.get("validation_best_mae")),
                     "test_mse": mse, "test_mae": mae, "quality": quality,
                     "duration_seconds": payload.get("duration_seconds"),
-                    "result_source": payload.get("result_source"),
+                    "result_source": ("q2_timemixer_stability_summary"
+                                      if stable else payload.get("result_source")),
                 })
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -77,7 +103,7 @@ def main() -> int:
 
     report = OUTPUT / "main_table.md"
     lines = [
-        "# 六数据集统一协议主实验表", "",
+        "# 五数据集统一协议主实验表", "",
         "- 输入长度：336；预测长度：96/192/336/720；seed：2021；M→M。",
         "- 所有新运行均由验证集最佳 MSE 选择检查点，再进行一次性测试。",
         f"- 完成度：{len(rows)}/{status['expected']}；缺失 {len(missing)}；失败 {len(failed)}；数值发散 {len(unstable)}。",

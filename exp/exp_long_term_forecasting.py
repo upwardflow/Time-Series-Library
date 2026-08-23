@@ -81,7 +81,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return total_loss
 
     def evaluate_checkpoint(self, setting, flag='val'):
-        """Evaluate one frozen checkpoint with optional CMRHM diagnostics."""
+        """Evaluate one frozen checkpoint with optional TimeRole diagnostics."""
         if flag not in {'val', 'test'}:
             raise ValueError(f'unsupported evaluation split: {flag}')
         _, loader = self._get_data(flag=flag)
@@ -162,8 +162,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 int(torch.cuda.max_memory_allocated(self.device))
                 if self.device.type == 'cuda' else 0
             ),
-            'cmrhm_intervention': getattr(
-                self.args, 'cmrhm_old_intervention', 'intact'
+            'timerole_intervention': getattr(
+                self.args,
+                'timerole_old_intervention',
+                getattr(self.args, 'cmrhm_old_intervention', 'intact'),
             ),
         }
         if correction_count:

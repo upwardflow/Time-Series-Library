@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate and audit the Q2 periodic-backbone x CMRHM factorial."""
+"""Aggregate and audit the Q2 periodic-backbone x TimeRole factorial."""
 
 from __future__ import annotations
 
@@ -131,14 +131,14 @@ def main() -> int:
     )
 
     lines = [
-        "# GraphMamba Q2 periodic × CMRHM factorial validation",
+        "# GraphMamba Q2 periodic × TimeRole factorial validation",
         "",
         "## Protocol",
         "",
         "- Validation only; no test evaluation.",
         "- ETTh1/ETTh2 × horizons 192/720 × seeds 2021/2022/2023.",
-        "- All variants load 336 points; all backbones process only the recent 96 points; only CMRHM reads the old 240 points.",
-        "- `b`: independent dual patches; `p`: periodic multi-resolution backbone; `c`: `b` + CMRHM; `pc`: `p` + CMRHM.",
+        "- All variants load 336 points; all backbones process only the recent 96 points; only TimeRole reads the old 240 points.",
+        "- `b`: independent dual patches; `p`: periodic multi-resolution backbone; `c`: `b` + TimeRole; `pc`: `p` + TimeRole.",
         "",
         "## Paired results",
         "",
