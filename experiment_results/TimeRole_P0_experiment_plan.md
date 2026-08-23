@@ -148,6 +148,17 @@ tmux attach -t timerole_p0_pilot
 tmux capture-pane -pt timerole_p0_pilot -S -80
 ```
 
+### 已冻结的最近邻兼容性pilot命令（2026-08-24）
+
+RGSP三种子审计通过后，最近邻兼容性pilot使用单一tmux会话串行执行；Attraos失败时不启动DiM，且两者都不自动重试：
+
+```bash
+mkdir -p logs/timerole_p0/closest
+tmux new-session -d -s timerole_p0_closest "bash -lc 'cd /home/cwh/Time-Series-Library && set -o pipefail && .venv/bin/python -u scripts/run_timerole_attraos_pilot.py --gpu 0 --seed 2021 --epochs 2 --patience 2 --timeout-seconds 1800 2>&1 | tee logs/timerole_p0/closest/attraos_controller.log && .venv/bin/python -u scripts/run_timerole_dim_pilot.py --gpu 0 --seed 2021 --epochs 2 --patience 2 --timeout-seconds 1800 2>&1 | tee logs/timerole_p0/closest/dim_controller.log'"
+```
+
+两个pilot均固定为ETTm1、输入长度336、预测长度96、validation-only和元素加权MSE/MAE。它们仅检验协议兼容性、运行稳定性和资源量级，不用两epoch结果决定论文性能排序。Attraos使用官方commit `b2c7307269a844d6ae2608a0180c22d4a8b711f4`；DiM使用带MIT许可证的官方commit `73f60a7ff955c17817a115649e97c06fb7d1e143`。两份官方副本及其适配差异保存在被主仓库忽略的`external/timerole_p0/`中，不随论文代码重新分发。
+
 每个阶段必须产生：`manifest.csv`、`status.json`、逐任务JSON、逐任务日志和独立检查点目录。总控支持断点续跑但不自动重试失败任务。
 
 ## 6. 预计规模与停止条件
