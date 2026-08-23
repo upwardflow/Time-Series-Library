@@ -13,8 +13,6 @@ class Model(RecentGraphMamba):
     """Combine a recent graph-state predictor with bounded history correction."""
 
     def __init__(self, configs):
-        if int(configs.seq_len) != 336:
-            raise ValueError("TimeRole currently requires seq_len=336")
         super().__init__(configs)
         self.memory_pool = int(
             getattr(
@@ -24,8 +22,15 @@ class Model(RecentGraphMamba):
             )
         )
         self.old_len = self.input_seq_len - self.recent_len
+        if self.old_len < 1:
+            raise ValueError("TimeRole requires seq_len > timerole_recent_len")
+        if self.memory_pool < 1:
+            raise ValueError("timerole_memory_pool must be positive")
         if self.old_len % self.memory_pool:
-            raise ValueError("Old-history length must be divisible by memory_pool")
+            raise ValueError(
+                "seq_len - timerole_recent_len must be divisible by "
+                "timerole_memory_pool"
+            )
         self.memory_tokens = self.old_len // self.memory_pool
         hidden_dim = int(
             getattr(

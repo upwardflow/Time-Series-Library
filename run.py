@@ -104,6 +104,9 @@ if __name__ == '__main__':
     parser.add_argument('--timerole_memory_pool', '--cmrhm_memory_pool',
                         dest='timerole_memory_pool', type=int, default=16,
                         help='old-history average-pooling width for TimeRole')
+    parser.add_argument('--timerole_recent_len', '--cmrhm_recent_len',
+                        dest='timerole_recent_len', type=int, default=96,
+                        help='recent-window length used by TimeRole and its strict control')
     parser.add_argument('--factor', type=int, default=1, help='attn factor')
     parser.add_argument('--distil', action='store_false',
                         help='whether to use distilling in encoder, using this argument means not using distilling',
