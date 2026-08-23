@@ -173,7 +173,7 @@ def atomic_write(path: Path, payload: dict[str, object]) -> None:
 
 def execute(
     command: list[str], log_path: Path, pattern: re.Pattern[str],
-    gpu: int, timeout_seconds: int,
+    gpu: int, timeout_seconds: int, cwd: Path = ROOT,
 ) -> tuple[int, dict[str, object] | None, float]:
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(gpu)
@@ -182,7 +182,7 @@ def execute(
     started = time.monotonic()
     with log_path.open("w", encoding="utf-8") as handle:
         process = subprocess.Popen(
-            command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
+            command, cwd=cwd, env=env, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, text=True, bufsize=1,
         )
         assert process.stdout is not None
