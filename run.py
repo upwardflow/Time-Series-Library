@@ -417,7 +417,7 @@ if __name__ == '__main__':
 
             if args.test_after_train:
                 print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-                exp.test(setting)
+                exp.evaluate_checkpoint(setting, flag='test')
             else:
                 print('>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<')
             if args.use_gpu:
@@ -486,7 +486,7 @@ if __name__ == '__main__':
             exp.evaluate_checkpoint(setting, flag='val')
         else:
             print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-            exp.test(setting, test=1)
+            exp.evaluate_checkpoint(setting, flag='test')
         if args.use_gpu:
             if args.gpu_type == 'mps':
                 torch.backends.mps.empty_cache()

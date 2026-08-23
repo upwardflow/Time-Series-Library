@@ -101,6 +101,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         fusion_gate_max = float('-inf')
         element_count = 0
         batch_count = 0
+        origin_mse = []
+        origin_mae = []
         if self.device.type == 'cuda':
             torch.cuda.reset_peak_memory_stats(self.device)
             torch.cuda.synchronize(self.device)
@@ -124,6 +126,15 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 absolute_error_sum += torch.sum(torch.abs(difference)).item()
                 element_count += target.numel()
                 batch_count += 1
+                if flag == 'test':
+                    origin_mse.extend(
+                        torch.mean(difference * difference, dim=(1, 2))
+                        .detach().cpu().tolist()
+                    )
+                    origin_mae.extend(
+                        torch.mean(torch.abs(difference), dim=(1, 2))
+                        .detach().cpu().tolist()
+                    )
 
                 module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
                 correction = getattr(module, 'last_memory_correction', None)
@@ -167,7 +178,25 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 'timerole_old_intervention',
                 getattr(self.args, 'cmrhm_old_intervention', 'intact'),
             ),
+            'test_accessed': flag == 'test',
         }
+        if flag == 'test':
+            origin_path = os.path.join(
+                self.args.checkpoints, setting, 'test_origin_metrics.npz'
+            )
+            temporary = origin_path + '.tmp'
+            with open(temporary, 'wb') as handle:
+                np.savez_compressed(
+                    handle,
+                    mse=np.asarray(origin_mse, dtype=np.float64),
+                    mae=np.asarray(origin_mae, dtype=np.float64),
+                )
+            os.replace(temporary, origin_path)
+            result.update({
+                'origin_metric_version': 'per_forecast_origin_mean_v1',
+                'origin_count': len(origin_mse),
+                'origin_metrics_path': origin_path,
+            })
         if correction_count:
             result['memory_correction_mae'] = correction_abs_sum / correction_count
             result['memory_correction_rms'] = (
@@ -196,6 +225,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 'gate_values': gate_values.tolist(),
             })
         print('EVALUATION_RESULT ' + json.dumps(result, sort_keys=True))
+        if flag == 'test':
+            print('mse:{}, mae:{}, dtw:Not calculated'.format(
+                result['mse'], result['mae']
+            ))
         return result
 
     def train(self, setting):
