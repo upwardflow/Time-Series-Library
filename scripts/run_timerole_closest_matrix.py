@@ -32,6 +32,16 @@ import run_timerole_dim_pilot as dim_pilot
 
 OUTPUT = ROOT / "logs" / "timerole_p0" / "closest" / "formal"
 MODELS = ("Attraos", "DiM")
+OFFICIAL = {
+    "Attraos": {
+        "commit": "b2c7307269a844d6ae2608a0180c22d4a8b711f4",
+        "license": "no_license_file_found_do_not_redistribute",
+    },
+    "DiM": {
+        "commit": "73f60a7ff955c17817a115649e97c06fb7d1e143",
+        "license": "MIT",
+    },
+}
 SEEDS = (2021, 2022, 2023)
 HORIZONS = (96, 720)
 
@@ -150,6 +160,8 @@ def run_one(model: str, dataset: str, horizon: int, seed: int, args: argparse.Na
         "dataset": dataset, "horizon": horizon, "seq_len": 336, "seed": seed,
         "checkpoint_selected_by": "validation_loss_early_stopping",
         "test_access": "one_shot_after_validation_selection" if success else None,
+        "official_commit": OFFICIAL[model]["commit"],
+        "license": OFFICIAL[model]["license"],
         "return_code": code, "duration_seconds": round(duration, 3),
         "command": command, "cwd": str(repository), "log_path": str(log_path),
         "recorded_at": datetime.now().astimezone().isoformat(),
