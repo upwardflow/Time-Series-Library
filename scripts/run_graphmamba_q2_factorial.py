@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Run the frozen validation-only 2x2 periodic-backbone x CMRHM audit.
+"""Run the frozen validation-only 2x2 periodic-backbone x TimeRole audit.
 
 This script never requests test evaluation.  It compares, under one protocol:
 
 * b:  recent-96 GraphMamba with ordinary independent dual patches;
 * p:  recent-96 GraphMamba with periodic multi-resolution patches;
-* c:  b plus frozen CMRHM;
-* pc: p plus frozen CMRHM.
+* c:  b plus frozen TimeRole;
+* pc: p plus frozen TimeRole.
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ SEEDS = (2021, 2022, 2023)
 VARIANTS = {
     "b": ("GraphMambaRecent", "independent_shared"),
     "p": ("GraphMambaRecent", "periodic_aligned"),
-    "c": ("GraphMambaCMRHM", "independent_shared"),
-    "pc": ("GraphMambaCMRHM", "periodic_aligned"),
+    "c": ("TimeRole", "independent_shared"),
+    "pc": ("TimeRole", "periodic_aligned"),
 }
 
 
@@ -141,7 +141,7 @@ def write_status(done: list[str], failed: list[str], active: str | None) -> None
     temporary.write_text(
         json.dumps(
             {
-                "protocol": "frozen 2x2 periodic x CMRHM; validation only",
+                "protocol": "frozen 2x2 periodic x TimeRole; validation only",
                 "total_jobs": len(jobs()),
                 "completed_jobs": len(done),
                 "failed_jobs": failed,
