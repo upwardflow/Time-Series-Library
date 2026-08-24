@@ -1,0 +1,49 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           ETTm1_336_96_ettm1_96_recent336_s2021Model:              TimeXerRecent       
+
+[1mData Loader[0m
+  Data:               ETTm1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            256                 
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               2048                
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         4                   
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                ettm1_96_recent336_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeXerRecent ...
+>>>>>>>testing : long_term_forecast_ETTm1_336_96_ettm1_96_recent336_s2021_TimeXerRecent_ETTm1_ftM_sl336_ll48_pl96_dm256_nh8_el1_dl1_df2048_expand2_dc4_fc3_ebtimeF_dtTrue_ettm1_96_recent336_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 11425
+loading model
+test shape: (11425, 96, 7) (11425, 96, 7)
+test shape: (11425, 96, 7) (11425, 96, 7)
+mse:0.32166290283203125, mae:0.3583599030971527, dtw:Not calculated

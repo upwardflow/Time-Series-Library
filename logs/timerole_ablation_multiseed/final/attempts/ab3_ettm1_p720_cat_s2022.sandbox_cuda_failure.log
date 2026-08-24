@@ -1,0 +1,69 @@
+Using cpu or mps
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           ETTm1_96_720_ab3_ettm1_p720_cat_s2022Model:              TimeRoleConcat      
+
+[1mData Loader[0m
+  Data:               ETTm1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                ab3_ettm1_p720_cat_s2022Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+/home/cwh/.config/matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /tmp/matplotlib-pw3yy793 because there was an issue with the default path (/home/cwh/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeRoleConcat ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+Traceback (most recent call last):
+  File "/home/cwh/Time-Series-Library/run.py", line 426, in <module>
+    exp = Exp(args)  # set experiments
+          ^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/exp/exp_long_term_forecasting.py", line 21, in __init__
+    super(Exp_Long_Term_Forecast, self).__init__(args)
+  File "/home/cwh/Time-Series-Library/exp/exp_basic.py", line 23, in __init__
+    self.model = self._build_model().to(self.device)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1340, in to
+    return self._apply(convert)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 900, in _apply
+    module._apply(fn)
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 927, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1326, in convert
+    return t.to(
+           ^^^^^
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/cuda/__init__.py", line 319, in _lazy_init
+    torch._C._cuda_init()
+RuntimeError: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx

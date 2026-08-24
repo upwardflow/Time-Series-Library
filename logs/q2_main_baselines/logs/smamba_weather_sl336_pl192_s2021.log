@@ -1,0 +1,156 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           smamba_weather_sl336_pl192_s2021Model:              SMamba              
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/weather
+  Data Path:          weather.csv         Features:           M                   
+  Target:             CO2 (ppm)           Freq:               t                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             21                  Dec In:             21                  
+  C Out:              21                  d model:            512                 
+  n heads:            4                   e layers:           3                   
+  d layers:           1                   d FF:               512                 
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       5                   Batch Size:         32                  
+  Patience:           3                   Learning Rate:      5e-05               
+  Des:                smamba_weather_sl336_pl192_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SMamba ...
+>>>>>>>start training : long_term_forecast_smamba_weather_sl336_pl192_s2021_SMamba_custom_ftM_sl336_ll48_pl192_dm512_nh4_el3_dl1_df512_expand2_dc4_fc3_ebtimeF_dtTrue_smamba_weather_sl336_pl192_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 36360
+val 5079
+	iters: 100, epoch: 1 | loss: 0.4236005
+	speed: 0.0149s/iter; left time: 83.0990s
+	iters: 200, epoch: 1 | loss: 0.4988483
+	speed: 0.0117s/iter; left time: 63.9808s
+	iters: 300, epoch: 1 | loss: 0.3726790
+	speed: 0.0115s/iter; left time: 61.9264s
+	iters: 400, epoch: 1 | loss: 0.4505442
+	speed: 0.0114s/iter; left time: 60.2088s
+	iters: 500, epoch: 1 | loss: 0.3442187
+	speed: 0.0115s/iter; left time: 59.5441s
+	iters: 600, epoch: 1 | loss: 0.3711067
+	speed: 0.0116s/iter; left time: 58.8279s
+	iters: 700, epoch: 1 | loss: 0.3648727
+	speed: 0.0117s/iter; left time: 58.5041s
+	iters: 800, epoch: 1 | loss: 0.3206584
+	speed: 0.0117s/iter; left time: 57.3651s
+	iters: 900, epoch: 1 | loss: 0.3707940
+	speed: 0.0121s/iter; left time: 57.8351s
+	iters: 1000, epoch: 1 | loss: 0.4942364
+	speed: 0.0115s/iter; left time: 53.8693s
+	iters: 1100, epoch: 1 | loss: 0.4628281
+	speed: 0.0119s/iter; left time: 54.7383s
+Epoch: 1 cost time: 13.588274240493774
+Epoch: 1, Steps: 1137 | Train Loss: 0.5052367 Vali Loss: 0.4628799
+Validation loss decreased (inf --> 0.462880).  Saving model ...
+Updating learning rate to 5e-05
+	iters: 100, epoch: 2 | loss: 0.4486521
+	speed: 0.0244s/iter; left time: 108.4517s
+	iters: 200, epoch: 2 | loss: 0.4074754
+	speed: 0.0123s/iter; left time: 53.5409s
+	iters: 300, epoch: 2 | loss: 0.2704070
+	speed: 0.0120s/iter; left time: 50.9917s
+	iters: 400, epoch: 2 | loss: 0.2885413
+	speed: 0.0122s/iter; left time: 50.7876s
+	iters: 500, epoch: 2 | loss: 0.4868248
+	speed: 0.0120s/iter; left time: 48.5972s
+	iters: 600, epoch: 2 | loss: 0.2743093
+	speed: 0.0119s/iter; left time: 46.9507s
+	iters: 700, epoch: 2 | loss: 0.7564954
+	speed: 0.0118s/iter; left time: 45.3474s
+	iters: 800, epoch: 2 | loss: 0.2714992
+	speed: 0.0116s/iter; left time: 43.5457s
+	iters: 900, epoch: 2 | loss: 0.3319910
+	speed: 0.0119s/iter; left time: 43.6005s
+	iters: 1000, epoch: 2 | loss: 0.3125672
+	speed: 0.0117s/iter; left time: 41.4864s
+	iters: 1100, epoch: 2 | loss: 0.2601221
+	speed: 0.0119s/iter; left time: 41.0647s
+Epoch: 2 cost time: 13.557768106460571
+Epoch: 2, Steps: 1137 | Train Loss: 0.4084833 Vali Loss: 0.4979986
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 3 | loss: 0.7886592
+	speed: 0.0242s/iter; left time: 80.2855s
+	iters: 200, epoch: 3 | loss: 0.3406962
+	speed: 0.0116s/iter; left time: 37.1417s
+	iters: 300, epoch: 3 | loss: 0.7635897
+	speed: 0.0117s/iter; left time: 36.5349s
+	iters: 400, epoch: 3 | loss: 0.7019052
+	speed: 0.0123s/iter; left time: 36.9617s
+	iters: 500, epoch: 3 | loss: 0.2126420
+	speed: 0.0118s/iter; left time: 34.2220s
+	iters: 600, epoch: 3 | loss: 0.7054183
+	speed: 0.0124s/iter; left time: 34.9785s
+	iters: 700, epoch: 3 | loss: 0.2830691
+	speed: 0.0124s/iter; left time: 33.7032s
+	iters: 800, epoch: 3 | loss: 0.3337200
+	speed: 0.0117s/iter; left time: 30.5625s
+	iters: 900, epoch: 3 | loss: 0.2388676
+	speed: 0.0116s/iter; left time: 29.0585s
+	iters: 1000, epoch: 3 | loss: 0.4082245
+	speed: 0.0121s/iter; left time: 29.0724s
+	iters: 1100, epoch: 3 | loss: 0.2586656
+	speed: 0.0121s/iter; left time: 27.9040s
+Epoch: 3 cost time: 13.572609424591064
+Epoch: 3, Steps: 1137 | Train Loss: 0.3535692 Vali Loss: 0.5205956
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 1.25e-05
+	iters: 100, epoch: 4 | loss: 0.2393349
+	speed: 0.0240s/iter; left time: 52.1158s
+	iters: 200, epoch: 4 | loss: 0.1913216
+	speed: 0.0121s/iter; left time: 25.0831s
+	iters: 300, epoch: 4 | loss: 0.6286658
+	speed: 0.0117s/iter; left time: 23.0780s
+	iters: 400, epoch: 4 | loss: 0.2330761
+	speed: 0.0117s/iter; left time: 21.9539s
+	iters: 500, epoch: 4 | loss: 0.2957502
+	speed: 0.0117s/iter; left time: 20.7373s
+	iters: 600, epoch: 4 | loss: 0.1907921
+	speed: 0.0117s/iter; left time: 19.6020s
+	iters: 700, epoch: 4 | loss: 0.2339947
+	speed: 0.0120s/iter; left time: 18.9575s
+	iters: 800, epoch: 4 | loss: 0.6947592
+	speed: 0.0118s/iter; left time: 17.4691s
+	iters: 900, epoch: 4 | loss: 0.2315333
+	speed: 0.0119s/iter; left time: 16.4063s
+	iters: 1000, epoch: 4 | loss: 0.2261040
+	speed: 0.0123s/iter; left time: 15.6760s
+	iters: 1100, epoch: 4 | loss: 0.2219258
+	speed: 0.0117s/iter; left time: 13.7286s
+Epoch: 4 cost time: 13.448656797409058
+Epoch: 4, Steps: 1137 | Train Loss: 0.3282083 Vali Loss: 0.5309802
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.33015006258170754, "best_mse": 0.46287985695691236, "epochs_ran": 4, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_smamba_weather_sl336_pl192_s2021_SMamba_custom_ftM_sl336_ll48_pl192_dm512_nh4_el3_dl1_df512_expand2_dc4_fc3_ebtimeF_dtTrue_smamba_weather_sl336_pl192_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 10348
+test shape: (10348, 192, 21) (10348, 192, 21)
+test shape: (10348, 192, 21) (10348, 192, 21)
+mse:0.20164340734481812, mae:0.2479715794324875, dtw:Not calculated

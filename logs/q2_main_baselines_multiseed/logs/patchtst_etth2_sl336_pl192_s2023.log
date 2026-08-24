@@ -1,0 +1,84 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           patchtst_etth2_sl336_pl192_s2023Model:              PatchTST            
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines_multiseed/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            512                 
+  n heads:            4                   e layers:           3                   
+  d layers:           1                   d FF:               2048                
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                patchtst_etth2_sl336_pl192_s2023Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: PatchTST ...
+>>>>>>>start training : long_term_forecast_patchtst_etth2_sl336_pl192_s2023_PatchTST_ETTh2_ftM_sl336_ll48_pl192_dm512_nh4_el3_dl1_df2048_expand2_dc4_fc3_ebtimeF_dtTrue_patchtst_etth2_sl336_pl192_s2023_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8113
+val 2689
+	iters: 100, epoch: 1 | loss: 0.3188280
+	speed: 0.0405s/iter; left time: 98.9165s
+	iters: 200, epoch: 1 | loss: 0.3154494
+	speed: 0.0381s/iter; left time: 89.2736s
+Epoch: 1 cost time: 9.927481651306152
+Epoch: 1, Steps: 254 | Train Loss: 0.5313364 Vali Loss: 0.2883816
+Validation loss decreased (inf --> 0.288382).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.8217776
+	speed: 0.0670s/iter; left time: 146.5958s
+	iters: 200, epoch: 2 | loss: 0.4770100
+	speed: 0.0382s/iter; left time: 79.7664s
+Epoch: 2 cost time: 9.667275428771973
+Epoch: 2, Steps: 254 | Train Loss: 0.4254228 Vali Loss: 0.3029238
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.3800956
+	speed: 0.0664s/iter; left time: 128.3172s
+	iters: 200, epoch: 3 | loss: 0.3183706
+	speed: 0.0381s/iter; left time: 69.8589s
+Epoch: 3 cost time: 9.660902500152588
+Epoch: 3, Steps: 254 | Train Loss: 0.3608991 Vali Loss: 0.2905529
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.4762566
+	speed: 0.0667s/iter; left time: 111.9269s
+	iters: 200, epoch: 4 | loss: 0.3335495
+	speed: 0.0382s/iter; left time: 60.3495s
+Epoch: 4 cost time: 9.680310726165771
+Epoch: 4, Steps: 254 | Train Loss: 0.3291991 Vali Loss: 0.2909315
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.3816068929944382, "best_mse": 0.28838164339948985, "epochs_ran": 4, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_patchtst_etth2_sl336_pl192_s2023_PatchTST_ETTh2_ftM_sl336_ll48_pl192_dm512_nh4_el3_dl1_df2048_expand2_dc4_fc3_ebtimeF_dtTrue_patchtst_etth2_sl336_pl192_s2023_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2689
+test shape: (2689, 192, 7) (2689, 192, 7)
+test shape: (2689, 192, 7) (2689, 192, 7)
+mse:0.38634735345840454, mae:0.43305444717407227, dtw:Not calculated

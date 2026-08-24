@@ -1,0 +1,47 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           ETTm2_96_96_ettm2_96_cmrhm_s2021Model:              GraphMambaCMRHM     
+
+[1mData Loader[0m
+  Data:               ETTm2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                ettm2_96_cmrhm_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaCMRHM ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>evaluating validation checkpoint : long_term_forecast_ETTm2_96_96_ettm2_96_cmrhm_s2021_GraphMambaCMRHM_ETTm2_ftM_sl336_ll48_pl96_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_ettm2_96_cmrhm_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+val 11425
+EVALUATION_RESULT {"batches": 358, "cmrhm_intervention": "reverse", "elapsed_seconds": 1.7871862249448895, "elements": 7677600, "gate_abs_mean": 0.11757386475801468, "gate_max": 0.016190309077501297, "gate_mean": -0.11294806003570557, "gate_min": -0.18255959451198578, "gate_values": [-0.17005768418312073, -0.18255959451198578, -0.09056250005960464, -0.1721518486738205, -0.03923903778195381, 0.016190309077501297, -0.152256041765213], "mae": 0.2512927696130245, "memory_correction_mae": 0.04103867334860917, "memory_correction_rms": 0.07198050320680231, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 4.99214029314215, "mse": 0.13068543409449093, "parameter_count": 1004013, "peak_cuda_memory_bytes": 139173888, "split": "val"}

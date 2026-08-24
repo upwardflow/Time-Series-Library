@@ -1,0 +1,121 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTh1_96_192_pxs_h1_p192_s21Model:              GraphMamba          
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                pxs_h1_p192_s21     Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMamba ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_ETTh1_96_192_pxs_h1_p192_s21_GraphMamba_ETTh1_ftM_sl96_ll48_pl192_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_pxs_h1_p192_s21_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_smPX_p24s12_l4s2_a1>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8353
+val 2689
+	iters: 100, epoch: 1 | loss: 0.4344145
+	speed: 0.0507s/iter; left time: 1323.5830s
+	iters: 200, epoch: 1 | loss: 0.3889413
+	speed: 0.0484s/iter; left time: 1259.1216s
+Epoch: 1 cost time: 12.927279949188232
+Epoch: 1, Steps: 262 | Train Loss: 0.4514032 Vali Loss: 1.0621477
+Validation loss decreased (inf --> 1.062148).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.3808150
+	speed: 0.0924s/iter; left time: 2386.3436s
+	iters: 200, epoch: 2 | loss: 0.4675705
+	speed: 0.0486s/iter; left time: 1250.2453s
+Epoch: 2 cost time: 12.700782299041748
+Epoch: 2, Steps: 262 | Train Loss: 0.4151275 Vali Loss: 1.0221200
+Validation loss decreased (1.062148 --> 1.022120).  Saving model ...
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 0.4118150
+	speed: 0.0918s/iter; left time: 2348.3029s
+	iters: 200, epoch: 3 | loss: 0.3465067
+	speed: 0.0488s/iter; left time: 1244.3915s
+Epoch: 3 cost time: 12.706644296646118
+Epoch: 3, Steps: 262 | Train Loss: 0.3992072 Vali Loss: 1.0201000
+Validation loss decreased (1.022120 --> 1.020100).  Saving model ...
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 0.3367413
+	speed: 0.0924s/iter; left time: 2339.2579s
+	iters: 200, epoch: 4 | loss: 0.3529716
+	speed: 0.0487s/iter; left time: 1227.5965s
+Epoch: 4 cost time: 12.750942468643188
+Epoch: 4, Steps: 262 | Train Loss: 0.3929616 Vali Loss: 1.0399574
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.3408951
+	speed: 0.0927s/iter; left time: 2323.3722s
+	iters: 200, epoch: 5 | loss: 0.3328989
+	speed: 0.0493s/iter; left time: 1230.2246s
+Epoch: 5 cost time: 12.815923690795898
+Epoch: 5, Steps: 262 | Train Loss: 0.3863012 Vali Loss: 1.0321270
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.3388578
+	speed: 0.0923s/iter; left time: 2287.2359s
+	iters: 200, epoch: 6 | loss: 0.3985258
+	speed: 0.0483s/iter; left time: 1191.7780s
+Epoch: 6 cost time: 12.65765905380249
+Epoch: 6, Steps: 262 | Train Loss: 0.3841177 Vali Loss: 1.0324590
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.3639003
+	speed: 0.0923s/iter; left time: 2263.8399s
+	iters: 200, epoch: 7 | loss: 0.4012260
+	speed: 0.0487s/iter; left time: 1190.6328s
+Epoch: 7 cost time: 12.731877326965332
+Epoch: 7, Steps: 262 | Train Loss: 0.3825794 Vali Loss: 1.0343446
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 7.8125e-06
+	iters: 100, epoch: 8 | loss: 0.3869645
+	speed: 0.0923s/iter; left time: 2238.6999s
+	iters: 200, epoch: 8 | loss: 0.3820189
+	speed: 0.0487s/iter; left time: 1175.7502s
+Epoch: 8 cost time: 12.704646825790405
+Epoch: 8, Steps: 262 | Train Loss: 0.3821822 Vali Loss: 1.0353131
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 3.90625e-06
+	iters: 100, epoch: 9 | loss: 0.3466572
+	speed: 0.0923s/iter; left time: 2214.9498s
+	iters: 200, epoch: 9 | loss: 0.3430947
+	speed: 0.0492s/iter; left time: 1175.2665s
+Epoch: 9 cost time: 12.805894136428833
+Epoch: 9, Steps: 262 | Train Loss: 0.3824391 Vali Loss: 1.0373569
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 3, "best_mae": 0.6611116220201697, "best_mse": 1.0201000030957488, "epochs_ran": 9, "metric_version": "element_weighted_v1"}
+>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<

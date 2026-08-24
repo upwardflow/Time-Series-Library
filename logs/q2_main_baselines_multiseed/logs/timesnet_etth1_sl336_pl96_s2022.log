@@ -1,0 +1,84 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           timesnet_etth1_sl336_pl96_s2022Model:              TimesNet            
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines_multiseed/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            32                  
+  n heads:            4                   e layers:           2                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                timesnet_etth1_sl336_pl96_s2022Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimesNet ...
+>>>>>>>start training : long_term_forecast_timesnet_etth1_sl336_pl96_s2022_TimesNet_ETTh1_ftM_sl336_ll48_pl96_dm32_nh4_el2_dl1_df32_expand2_dc4_fc3_ebtimeF_dtTrue_timesnet_etth1_sl336_pl96_s2022_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2785
+	iters: 100, epoch: 1 | loss: 0.4937292
+	speed: 0.0586s/iter; left time: 144.7786s
+	iters: 200, epoch: 1 | loss: 0.4034332
+	speed: 0.0372s/iter; left time: 88.2137s
+Epoch: 1 cost time: 11.25754165649414
+Epoch: 1, Steps: 257 | Train Loss: 0.4685595 Vali Loss: 0.8325984
+Validation loss decreased (inf --> 0.832598).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.3326335
+	speed: 0.0723s/iter; left time: 160.1782s
+	iters: 200, epoch: 2 | loss: 0.3290597
+	speed: 0.0378s/iter; left time: 79.8631s
+Epoch: 2 cost time: 9.750957489013672
+Epoch: 2, Steps: 257 | Train Loss: 0.3367038 Vali Loss: 0.8624203
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.2610119
+	speed: 0.0704s/iter; left time: 137.7335s
+	iters: 200, epoch: 3 | loss: 0.3820986
+	speed: 0.0375s/iter; left time: 69.7098s
+Epoch: 3 cost time: 9.64247179031372
+Epoch: 3, Steps: 257 | Train Loss: 0.3056565 Vali Loss: 0.8867999
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.2552844
+	speed: 0.0702s/iter; left time: 119.3593s
+	iters: 200, epoch: 4 | loss: 0.3177216
+	speed: 0.0380s/iter; left time: 60.7815s
+Epoch: 4 cost time: 9.722439527511597
+Epoch: 4, Steps: 257 | Train Loss: 0.2921457 Vali Loss: 0.9171532
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.6281818543661045, "best_mse": 0.832598420311327, "epochs_ran": 4, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_timesnet_etth1_sl336_pl96_s2022_TimesNet_ETTh1_ftM_sl336_ll48_pl96_dm32_nh4_el2_dl1_df32_expand2_dc4_fc3_ebtimeF_dtTrue_timesnet_etth1_sl336_pl96_s2022_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2785
+test shape: (2785, 96, 7) (2785, 96, 7)
+test shape: (2785, 96, 7) (2785, 96, 7)
+mse:0.4431692957878113, mae:0.4515607953071594, dtw:Not calculated

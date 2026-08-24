@@ -1,0 +1,48 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           sensitivity_history_weather_h720_l960_r96_p16_s2022Model:              TimeRole            
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/weather
+  Data Path:          weather.csv         Features:           M                   
+  Target:             CO2 (ppm)           Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timerole_p0/sensitivity/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            960                 Label Len:          48                  
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             21                  Dec In:             21                  
+  C Out:              21                  d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                sensitivity_history_weather_h720_l960_r96_p16_s2022Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeRole ...
+[GraphMamba] Loaded static graph: /home/cwh/Time-Series-Library/dataset/weather/weather_adj_train_custom_M_uniform_2000_seed2022.npy
+>>>>>>>testing : long_term_forecast_sensitivity_history_weather_h720_l960_r96_p16_s2022_TimeRole_custom_ftM_sl960_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sensitivity_history_weather_h720_l960_r96_p16_s2022_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 9820
+EVALUATION_RESULT {"batches": 307, "elapsed_seconds": 3.4014833071269095, "elements": 148478400, "gate_abs_mean": 0.13348305225372314, "gate_max": -0.02090250514447689, "gate_mean": -0.13348305225372314, "gate_min": -0.17757298052310944, "gate_values": [-0.08821788430213928, -0.15784955024719238, -0.1566387563943863, -0.14536897838115692, -0.15938422083854675, -0.16086600720882416, -0.13227544724941254, -0.16134680807590485, -0.1326855570077896, -0.13301357626914978, -0.14652200043201447, -0.03910710662603378, -0.15817910432815552, -0.10795854777097702, -0.106025829911232, -0.10416040569543839, -0.1759301722049713, -0.17561273276805878, -0.17757298052310944, -0.16352593898773193, -0.02090250514447689], "mae": 0.32839012673728973, "memory_correction_mae": 0.1917034163302541, "memory_correction_rms": 0.28152909559941686, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 11.079750186081139, "mse": 0.3034812280565725, "origin_count": 9820, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/timerole_p0/sensitivity/checkpoints/long_term_forecast_sensitivity_history_weather_h720_l960_r96_p16_s2022_TimeRole_custom_ftM_sl960_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sensitivity_history_weather_h720_l960_r96_p16_s2022_0/test_origin_metrics.npz", "parameter_count": 6838215, "peak_cuda_memory_bytes": 426933760, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.3034812280565725, mae:0.32839012673728973, dtw:Not calculated

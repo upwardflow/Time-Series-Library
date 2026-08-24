@@ -1,0 +1,92 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           smamba_etth2_sl336_pl192_s2023Model:              SMamba              
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines_multiseed/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            256                 
+  n heads:            4                   e layers:           2                   
+  d layers:           1                   d FF:               256                 
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      4e-05               
+  Des:                smamba_etth2_sl336_pl192_s2023Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SMamba ...
+>>>>>>>start training : long_term_forecast_smamba_etth2_sl336_pl192_s2023_SMamba_ETTh2_ftM_sl336_ll48_pl192_dm256_nh4_el2_dl1_df256_expand2_dc4_fc3_ebtimeF_dtTrue_smamba_etth2_sl336_pl192_s2023_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8113
+val 2689
+	iters: 100, epoch: 1 | loss: 0.7399114
+	speed: 0.0107s/iter; left time: 26.0554s
+	iters: 200, epoch: 1 | loss: 0.3882931
+	speed: 0.0081s/iter; left time: 18.8743s
+Epoch: 1 cost time: 2.3441102504730225
+Epoch: 1, Steps: 254 | Train Loss: 0.6069447 Vali Loss: 0.3063203
+Validation loss decreased (inf --> 0.306320).  Saving model ...
+Updating learning rate to 4e-05
+	iters: 100, epoch: 2 | loss: 0.3687752
+	speed: 0.0159s/iter; left time: 34.6665s
+	iters: 200, epoch: 2 | loss: 0.6095026
+	speed: 0.0082s/iter; left time: 17.0657s
+Epoch: 2 cost time: 2.0948526859283447
+Epoch: 2, Steps: 254 | Train Loss: 0.5260096 Vali Loss: 0.2961934
+Validation loss decreased (0.306320 --> 0.296193).  Saving model ...
+Updating learning rate to 2e-05
+	iters: 100, epoch: 3 | loss: 0.5495460
+	speed: 0.0158s/iter; left time: 30.5855s
+	iters: 200, epoch: 3 | loss: 0.3542135
+	speed: 0.0085s/iter; left time: 15.5792s
+Epoch: 3 cost time: 2.114201545715332
+Epoch: 3, Steps: 254 | Train Loss: 0.4934001 Vali Loss: 0.3032414
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 1e-05
+	iters: 100, epoch: 4 | loss: 0.3015403
+	speed: 0.0155s/iter; left time: 26.0790s
+	iters: 200, epoch: 4 | loss: 0.4786980
+	speed: 0.0082s/iter; left time: 13.0078s
+Epoch: 4 cost time: 2.1000571250915527
+Epoch: 4, Steps: 254 | Train Loss: 0.4750406 Vali Loss: 0.3099564
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 5e-06
+	iters: 100, epoch: 5 | loss: 0.5806730
+	speed: 0.0159s/iter; left time: 22.6041s
+	iters: 200, epoch: 5 | loss: 0.4033434
+	speed: 0.0084s/iter; left time: 11.0958s
+Epoch: 5 cost time: 2.1069624423980713
+Epoch: 5, Steps: 254 | Train Loss: 0.4653791 Vali Loss: 0.3081219
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 2, "best_mae": 0.375482195122731, "best_mse": 0.2961934390114751, "epochs_ran": 5, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_smamba_etth2_sl336_pl192_s2023_SMamba_ETTh2_ftM_sl336_ll48_pl192_dm256_nh4_el2_dl1_df256_expand2_dc4_fc3_ebtimeF_dtTrue_smamba_etth2_sl336_pl192_s2023_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2689
+test shape: (2689, 192, 7) (2689, 192, 7)
+test shape: (2689, 192, 7) (2689, 192, 7)
+mse:0.3654668927192688, mae:0.39752158522605896, dtw:Not calculated

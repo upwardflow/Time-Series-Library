@@ -1,0 +1,117 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTh1_96_336_etth1_p336_s2022_darc_frozenModel:              GraphMambaAF        
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           336                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                etth1_p336_s2022_darc_frozenLoss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaAF ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_ETTh1_96_336_etth1_p336_s2022_darc_frozen_GraphMambaAF_ETTh1_ftM_sl96_ll48_pl336_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p336_s2022_darc_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_residual_h32>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2545
+	iters: 100, epoch: 1 | loss: 0.5659202
+	speed: 0.0119s/iter; left time: 304.6270s
+	iters: 200, epoch: 1 | loss: 0.4578319
+	speed: 0.0095s/iter; left time: 242.8239s
+Epoch: 1 cost time: 2.6932971477508545
+Epoch: 1, Steps: 257 | Train Loss: 0.5534130 Vali Loss: 1.3006549
+Validation loss decreased (inf --> 1.300655).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.4911485
+	speed: 0.0184s/iter; left time: 466.0143s
+	iters: 200, epoch: 2 | loss: 0.5035532
+	speed: 0.0097s/iter; left time: 245.4933s
+Epoch: 2 cost time: 2.4798431396484375
+Epoch: 2, Steps: 257 | Train Loss: 0.4899814 Vali Loss: 1.2998477
+Validation loss decreased (1.300655 --> 1.299848).  Saving model ...
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 0.5095799
+	speed: 0.0183s/iter; left time: 460.1083s
+	iters: 200, epoch: 3 | loss: 0.4671746
+	speed: 0.0097s/iter; left time: 243.3813s
+Epoch: 3 cost time: 2.474705934524536
+Epoch: 3, Steps: 257 | Train Loss: 0.4810605 Vali Loss: 1.3090737
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 0.4792314
+	speed: 0.0183s/iter; left time: 453.3293s
+	iters: 200, epoch: 4 | loss: 0.4033079
+	speed: 0.0097s/iter; left time: 239.0315s
+Epoch: 4 cost time: 2.4815220832824707
+Epoch: 4, Steps: 257 | Train Loss: 0.4739358 Vali Loss: 1.3519470
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.4492663
+	speed: 0.0181s/iter; left time: 445.0729s
+	iters: 200, epoch: 5 | loss: 0.4806373
+	speed: 0.0096s/iter; left time: 234.4017s
+Epoch: 5 cost time: 2.46384334564209
+Epoch: 5, Steps: 257 | Train Loss: 0.4700901 Vali Loss: 1.3448332
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.5063533
+	speed: 0.0184s/iter; left time: 447.0811s
+	iters: 200, epoch: 6 | loss: 0.4262115
+	speed: 0.0096s/iter; left time: 233.4898s
+Epoch: 6 cost time: 2.462254762649536
+Epoch: 6, Steps: 257 | Train Loss: 0.4673186 Vali Loss: 1.3355348
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.5469602
+	speed: 0.0181s/iter; left time: 435.5726s
+	iters: 200, epoch: 7 | loss: 0.5025874
+	speed: 0.0098s/iter; left time: 235.2895s
+Epoch: 7 cost time: 2.4900569915771484
+Epoch: 7, Steps: 257 | Train Loss: 0.4660538 Vali Loss: 1.3434701
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 7.8125e-06
+	iters: 100, epoch: 8 | loss: 0.4729267
+	speed: 0.0182s/iter; left time: 432.4063s
+	iters: 200, epoch: 8 | loss: 0.4276513
+	speed: 0.0097s/iter; left time: 228.8569s
+Epoch: 8 cost time: 2.4692506790161133
+Epoch: 8, Steps: 257 | Train Loss: 0.4657031 Vali Loss: 1.3435678
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 2, "best_mae": 0.7605892791101583, "best_mse": 1.2998476874173048, "epochs_ran": 8, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_ETTh1_96_336_etth1_p336_s2022_darc_frozen_GraphMambaAF_ETTh1_ftM_sl96_ll48_pl336_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p336_s2022_darc_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_residual_h32<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2545
+test shape: (2545, 336, 7) (2545, 336, 7)
+test shape: (2545, 336, 7) (2545, 336, 7)
+mse:0.46608081459999084, mae:0.4399896562099457, dtw:Not calculated

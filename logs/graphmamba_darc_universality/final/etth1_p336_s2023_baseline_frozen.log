@@ -1,0 +1,117 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTh1_96_336_etth1_p336_s2023_baseline_frozenModel:              GraphMamba          
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           336                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                etth1_p336_s2023_baseline_frozenLoss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMamba ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_ETTh1_96_336_etth1_p336_s2023_baseline_frozen_GraphMamba_ETTh1_ftM_sl96_ll48_pl336_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p336_s2023_baseline_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2545
+	iters: 100, epoch: 1 | loss: 0.4868707
+	speed: 0.0112s/iter; left time: 287.9119s
+	iters: 200, epoch: 1 | loss: 0.5549546
+	speed: 0.0090s/iter; left time: 230.4267s
+Epoch: 1 cost time: 2.543699264526367
+Epoch: 1, Steps: 257 | Train Loss: 0.5571131 Vali Loss: 1.3032481
+Validation loss decreased (inf --> 1.303248).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.4952836
+	speed: 0.0173s/iter; left time: 439.1776s
+	iters: 200, epoch: 2 | loss: 0.4450500
+	speed: 0.0090s/iter; left time: 228.1899s
+Epoch: 2 cost time: 2.319333076477051
+Epoch: 2, Steps: 257 | Train Loss: 0.4905789 Vali Loss: 1.2891464
+Validation loss decreased (1.303248 --> 1.289146).  Saving model ...
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 0.4085548
+	speed: 0.0173s/iter; left time: 434.4424s
+	iters: 200, epoch: 3 | loss: 0.4657273
+	speed: 0.0091s/iter; left time: 226.3294s
+Epoch: 3 cost time: 2.3276021480560303
+Epoch: 3, Steps: 257 | Train Loss: 0.4798931 Vali Loss: 1.3066598
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 0.4964757
+	speed: 0.0171s/iter; left time: 424.8703s
+	iters: 200, epoch: 4 | loss: 0.4602763
+	speed: 0.0089s/iter; left time: 220.5873s
+Epoch: 4 cost time: 2.287031650543213
+Epoch: 4, Steps: 257 | Train Loss: 0.4727907 Vali Loss: 1.3283245
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.4883148
+	speed: 0.0171s/iter; left time: 420.3348s
+	iters: 200, epoch: 5 | loss: 0.3979788
+	speed: 0.0090s/iter; left time: 219.5157s
+Epoch: 5 cost time: 2.309699296951294
+Epoch: 5, Steps: 257 | Train Loss: 0.4686629 Vali Loss: 1.3282959
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.4176803
+	speed: 0.0171s/iter; left time: 415.9825s
+	iters: 200, epoch: 6 | loss: 0.4157557
+	speed: 0.0090s/iter; left time: 217.4974s
+Epoch: 6 cost time: 2.3057031631469727
+Epoch: 6, Steps: 257 | Train Loss: 0.4660956 Vali Loss: 1.3287868
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.4094000
+	speed: 0.0172s/iter; left time: 413.2344s
+	iters: 200, epoch: 7 | loss: 0.4859194
+	speed: 0.0089s/iter; left time: 214.2381s
+Epoch: 7 cost time: 2.3043994903564453
+Epoch: 7, Steps: 257 | Train Loss: 0.4645723 Vali Loss: 1.3372130
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 7.8125e-06
+	iters: 100, epoch: 8 | loss: 0.4122242
+	speed: 0.0171s/iter; left time: 407.5165s
+	iters: 200, epoch: 8 | loss: 0.4269742
+	speed: 0.0091s/iter; left time: 214.6465s
+Epoch: 8 cost time: 2.314183235168457
+Epoch: 8, Steps: 257 | Train Loss: 0.4642803 Vali Loss: 1.3340192
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 2, "best_mae": 0.7569622805915711, "best_mse": 1.2891463769861455, "epochs_ran": 8, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_ETTh1_96_336_etth1_p336_s2023_baseline_frozen_GraphMamba_ETTh1_ftM_sl96_ll48_pl336_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p336_s2023_baseline_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2545
+test shape: (2545, 336, 7) (2545, 336, 7)
+test shape: (2545, 336, 7) (2545, 336, 7)
+mse:0.46955060958862305, mae:0.4417036771774292, dtw:Not calculated

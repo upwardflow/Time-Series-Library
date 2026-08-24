@@ -1,0 +1,47 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           ETTm1_96_720_cmrhm_backbone_ettm1_p720_no_mamba_s2021Model:              GraphMambaCMRHM     
+
+[1mData Loader[0m
+  Data:               ETTm1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/cmrhm_backbone_ablation/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                cmrhm_backbone_ettm1_p720_no_mamba_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaCMRHM ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>evaluating validation checkpoint : long_term_forecast_ETTm1_96_720_cmrhm_backbone_ettm1_p720_no_mamba_s2021_GraphMambaCMRHM_ETTm1_ftM_sl336_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_cmrhm_backbone_ettm1_p720_no_mamba_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+val 10801
+EVALUATION_RESULT {"batches": 338, "cmrhm_intervention": "intact", "elapsed_seconds": 1.046631661010906, "elements": 54437040, "gate_abs_mean": 0.21767249703407288, "gate_max": 0.27707934379577637, "gate_mean": 0.21767249703407288, "gate_min": 0.13985247910022736, "gate_values": [0.2710898816585541, 0.19745193421840668, 0.27707934379577637, 0.18780449032783508, 0.21035076677799225, 0.13985247910022736, 0.2400786429643631], "mae": 0.6364858723146042, "memory_correction_mae": 0.27679240266743244, "memory_correction_rms": 0.4177059251272925, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 3.0965433757719114, "mse": 0.9404821095847606, "parameter_count": 6741901, "peak_cuda_memory_bytes": 94174208, "split": "val"}

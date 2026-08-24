@@ -1,0 +1,110 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTh2_336_96_sixds_etth2_p96_s2021Model:              GraphMambaCMRHM     
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                sixds_etth2_p96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaCMRHM ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+[GraphMamba] Saved static graph: /home/cwh/Time-Series-Library/dataset/ETT-small/ETTh2_adj_train_ETTh2_M_uniform_2000_seed2021.npy
+>>>>>>>start training : long_term_forecast_ETTh2_336_96_sixds_etth2_p96_s2021_GraphMambaCMRHM_ETTh2_ftM_sl336_ll48_pl96_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sixds_etth2_p96_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2785
+	iters: 100, epoch: 1 | loss: 0.4857886
+	speed: 0.0132s/iter; left time: 338.0696s
+	iters: 200, epoch: 1 | loss: 0.7801806
+	speed: 0.0112s/iter; left time: 286.0413s
+Epoch: 1 cost time: 3.0795559883117676
+Epoch: 1, Steps: 257 | Train Loss: 0.4514358 Vali Loss: 0.2150345
+Validation loss decreased (inf --> 0.215034).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.2819110
+	speed: 0.0214s/iter; left time: 543.0021s
+	iters: 200, epoch: 2 | loss: 0.2943820
+	speed: 0.0112s/iter; left time: 282.0232s
+Epoch: 2 cost time: 2.858166456222534
+Epoch: 2, Steps: 257 | Train Loss: 0.3926228 Vali Loss: 0.2263711
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 0.3922046
+	speed: 0.0213s/iter; left time: 534.9434s
+	iters: 200, epoch: 3 | loss: 0.2713832
+	speed: 0.0114s/iter; left time: 284.1038s
+Epoch: 3 cost time: 2.9007437229156494
+Epoch: 3, Steps: 257 | Train Loss: 0.3820474 Vali Loss: 0.2301954
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 0.2145827
+	speed: 0.0218s/iter; left time: 541.5146s
+	iters: 200, epoch: 4 | loss: 0.2426528
+	speed: 0.0114s/iter; left time: 282.2651s
+Epoch: 4 cost time: 2.9088351726531982
+Epoch: 4, Steps: 257 | Train Loss: 0.3754778 Vali Loss: 0.2311082
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.2763766
+	speed: 0.0217s/iter; left time: 532.0322s
+	iters: 200, epoch: 5 | loss: 0.4585251
+	speed: 0.0110s/iter; left time: 269.7810s
+Epoch: 5 cost time: 2.846806526184082
+Epoch: 5, Steps: 257 | Train Loss: 0.3722861 Vali Loss: 0.2394553
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.3144365
+	speed: 0.0214s/iter; left time: 519.2214s
+	iters: 200, epoch: 6 | loss: 0.4100820
+	speed: 0.0114s/iter; left time: 275.0951s
+Epoch: 6 cost time: 2.929385185241699
+Epoch: 6, Steps: 257 | Train Loss: 0.3703208 Vali Loss: 0.2323426
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.5498056
+	speed: 0.0226s/iter; left time: 544.4313s
+	iters: 200, epoch: 7 | loss: 0.2261679
+	speed: 0.0116s/iter; left time: 277.6942s
+Epoch: 7 cost time: 2.9585800170898438
+Epoch: 7, Steps: 257 | Train Loss: 0.3691500 Vali Loss: 0.2331998
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.32226369858929527, "best_mse": 0.2150344621404436, "epochs_ran": 7, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_ETTh2_336_96_sixds_etth2_p96_s2021_GraphMambaCMRHM_ETTh2_ftM_sl336_ll48_pl96_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sixds_etth2_p96_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2785
+test shape: (2785, 96, 7) (2785, 96, 7)
+test shape: (2785, 96, 7) (2785, 96, 7)
+mse:0.28704777359962463, mae:0.34694069623947144, dtw:Not calculated

@@ -13,6 +13,7 @@ import csv
 import json
 import shlex
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -92,7 +93,7 @@ def preset(model: str, dataset: str, horizon: int) -> dict[str, object]:
     if model == "PatchTST":
         return dict(label_len=48, e_layers=2, d_model=512, d_ff=2048, n_heads=8,
                     batch_size=16, learning_rate=1e-4, epochs=10, patience=3,
-                    patch_len=16, stride=8)
+                    patch_len=16, stride=8, use_amp=True)
     if model == "iTransformer":
         return dict(label_len=48, e_layers=3, d_model=512, d_ff=512, n_heads=8,
                     batch_size=16, learning_rate=5e-4 if dataset == "electricity" else 1e-4,
@@ -167,6 +168,8 @@ def command(task: Task, args: argparse.Namespace) -> list[str]:
             result.extend(("--" + key, str(config[key])))
     if "down_sampling_method" in config:
         result.extend(("--down_sampling_method", str(config["down_sampling_method"])))
+    if config.get("use_amp"):
+        result.append("--use_amp")
     if task.model == "SMamba":
         result.extend(("--d_state", str(config["d_state"]), "--use_norm", "1"))
     if task.model in {"TimeRole", "GraphMambaRecent"}:
@@ -215,9 +218,26 @@ def run_one(task: Task, args: argparse.Namespace) -> int:
         return 0
     log_path = args.output_dir / "logs" / f"{task.name}.log"
     pattern = base.VALIDATION_PATTERN if args.phase == "pilot" else base.EVALUATION_PATTERN
-    code, result, duration = base.execute(
-        run_command, log_path, pattern, args.gpu, args.timeout_seconds, cwd=ROOT
-    )
+    started = time.monotonic()
+    try:
+        code, result, duration = base.execute(
+            run_command, log_path, pattern, args.gpu, args.timeout_seconds, cwd=ROOT
+        )
+    except KeyboardInterrupt:
+        base.atomic_write(destination, {
+            "status": "interrupted", "phase": args.phase,
+            "model": DISPLAY.get(task.model, task.model), "implementation_model": task.model,
+            "dataset": task.dataset, "horizon": task.horizon, "seq_len": 336, "seed": task.seed,
+            "split": "validation" if args.phase == "pilot" else "test",
+            "test_accessed": False if args.phase == "pilot" else None,
+            "return_code": 130, "duration_seconds": round(time.monotonic() - started, 3),
+            "checkpoint_selected_by": "validation_loss", "command": run_command,
+            "execution_precision": "amp_fp16" if "--use_amp" in run_command else "fp32",
+            "log_path": str(log_path), "reason": "external_keyboard_interrupt",
+            "recorded_at": datetime.now().astimezone().isoformat(),
+        })
+        print(f"INTERRUPTED {task.name}; no automatic retry", flush=True)
+        raise
     if args.phase == "pilot":
         success = code == 0 and isinstance(result, dict)
         split, test_accessed = "validation", False
@@ -233,6 +253,9 @@ def run_one(task: Task, args: argparse.Namespace) -> int:
         "dataset": task.dataset, "horizon": task.horizon, "seq_len": 336, "seed": task.seed,
         "split": split, "test_accessed": test_accessed, "return_code": code,
         "duration_seconds": round(duration, 3), "checkpoint_selected_by": "validation_loss",
+        "execution_precision": "amp_fp16" if "--use_amp" in run_command else "fp32",
+        "runtime_adaptation": ("fp32_pilot_infeasible_under_21600s_cap"
+                               if task.model == "PatchTST" and "--use_amp" in run_command else None),
         "command": run_command, "log_path": str(log_path),
         "recorded_at": datetime.now().astimezone().isoformat(),
     }
@@ -264,7 +287,9 @@ def summarize(matrix: list[Task], args: argparse.Namespace, status: str) -> None
     with (args.output_dir / "summary.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields); writer.writeheader(); writer.writerows(rows)
     base.atomic_write(args.output_dir / "status.json", {
-        "status": status, "phase": args.phase, "expected": len(matrix), "completed": len(rows),
+        "status": status, "phase": args.phase,
+        "dataset": matrix[0].dataset if matrix and len({task.dataset for task in matrix}) == 1 else None,
+        "expected": len(matrix), "completed": len(rows),
         "failed": sum(1 for task in matrix if record_path(task, args).is_file() and not completed(record_path(task, args), args.phase)),
         "test_accessed": False if args.phase == "pilot" else True,
         "updated_at": datetime.now().astimezone().isoformat(),
@@ -279,12 +304,16 @@ def main() -> int:
             run_one(task, args)
         print(json.dumps({"phase": args.phase, "jobs": len(matrix), "test_accessed": args.phase == "formal"}))
         return 0
-    for index, task in enumerate(matrix, 1):
-        print(f"=== [{index}/{len(matrix)}] {task.name} ===", flush=True)
-        if run_one(task, args):
-            summarize(matrix, args, "failed")
-            return 1
-        summarize(matrix, args, "running")
+    try:
+        for index, task in enumerate(matrix, 1):
+            print(f"=== [{index}/{len(matrix)}] {task.name} ===", flush=True)
+            if run_one(task, args):
+                summarize(matrix, args, "failed")
+                return 1
+            summarize(matrix, args, "running")
+    except KeyboardInterrupt:
+        summarize(matrix, args, "interrupted")
+        return 130
     summarize(matrix, args, "completed")
     return 0
 

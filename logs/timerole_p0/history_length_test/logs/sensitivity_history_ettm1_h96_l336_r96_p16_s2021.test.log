@@ -1,0 +1,48 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        0                   
+  Model ID:           sensitivity_history_ettm1_h96_l336_r96_p16_s2021Model:              TimeRole            
+
+[1mData Loader[0m
+  Data:               ETTm1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timerole_p0/sensitivity/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                sensitivity_history_ettm1_h96_l336_r96_p16_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeRole ...
+[GraphMamba] Loaded static graph: /home/cwh/Time-Series-Library/dataset/ETT-small/ETTm1_adj_train_ETTm1_M_uniform_2000_seed2021.npy
+>>>>>>>testing : long_term_forecast_sensitivity_history_ettm1_h96_l336_r96_p16_s2021_TimeRole_ETTm1_ftM_sl336_ll48_pl96_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sensitivity_history_ettm1_h96_l336_r96_p16_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 11425
+EVALUATION_RESULT {"batches": 358, "elapsed_seconds": 1.8589107708539814, "elements": 7677600, "gate_abs_mean": 0.19225046038627625, "gate_max": 0.24329029023647308, "gate_mean": 0.19225046038627625, "gate_min": 0.1328020691871643, "gate_values": [0.2428627908229828, 0.16972948610782623, 0.24329029023647308, 0.16679270565509796, 0.2393827736377716, 0.1328020691871643, 0.15089300274848938], "mae": 0.3498830300395012, "memory_correction_mae": 0.18881145183352166, "memory_correction_rms": 0.3088607254787091, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 5.192488186742965, "mse": 0.29538658479656965, "origin_count": 11425, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/timerole_p0/sensitivity/checkpoints/long_term_forecast_sensitivity_history_ettm1_h96_l336_r96_p16_s2021_TimeRole_ETTm1_ftM_sl336_ll48_pl96_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_sensitivity_history_ettm1_h96_l336_r96_p16_s2021_0/test_origin_metrics.npz", "parameter_count": 1004013, "peak_cuda_memory_bytes": 139173888, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.29538658479656965, mae:0.3498830300395012, dtw:Not calculated

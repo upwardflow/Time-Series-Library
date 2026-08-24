@@ -1,0 +1,100 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           p0_smamba_electricity_l336_h96_s2021Model:              SMamba              
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/electricity
+  Data Path:          electricity.csv     Features:           M                   
+  Target:             0                   Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timerole_p0/ecl_solar/pilot/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             321                 Dec In:             321                 
+  C Out:              321                 d model:            512                 
+  n heads:            4                   e layers:           3                   
+  d layers:           1                   d FF:               512                 
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       2                   Batch Size:         16                  
+  Patience:           2                   Learning Rate:      0.001               
+  Des:                p0_smamba_electricity_l336_h96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SMamba ...
+>>>>>>>start training : long_term_forecast_p0_smamba_electricity_l336_h96_s2021_SMamba_custom_ftM_sl336_ll48_pl96_dm512_nh4_el3_dl1_df512_expand2_dc4_fc3_ebtimeF_dtTrue_p0_smamba_electricity_l336_h96_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 17981
+val 2537
+	iters: 100, epoch: 1 | loss: 0.1696764
+	speed: 0.0202s/iter; left time: 43.4124s
+	iters: 200, epoch: 1 | loss: 0.1641736
+	speed: 0.0171s/iter; left time: 35.0370s
+	iters: 300, epoch: 1 | loss: 0.1353091
+	speed: 0.0171s/iter; left time: 33.3930s
+	iters: 400, epoch: 1 | loss: 0.1346211
+	speed: 0.0174s/iter; left time: 32.2253s
+	iters: 500, epoch: 1 | loss: 0.1527715
+	speed: 0.0173s/iter; left time: 30.3262s
+	iters: 600, epoch: 1 | loss: 0.1286526
+	speed: 0.0172s/iter; left time: 28.3099s
+	iters: 700, epoch: 1 | loss: 0.1154156
+	speed: 0.0173s/iter; left time: 26.8733s
+	iters: 800, epoch: 1 | loss: 0.1363461
+	speed: 0.0172s/iter; left time: 24.8867s
+	iters: 900, epoch: 1 | loss: 0.1398782
+	speed: 0.0176s/iter; left time: 23.7546s
+	iters: 1000, epoch: 1 | loss: 0.1281981
+	speed: 0.0169s/iter; left time: 21.1399s
+	iters: 1100, epoch: 1 | loss: 0.1293795
+	speed: 0.0169s/iter; left time: 19.4285s
+Epoch: 1 cost time: 19.643737316131592
+Epoch: 1, Steps: 1124 | Train Loss: 0.1508330 Vali Loss: 0.1185555
+Validation loss decreased (inf --> 0.118555).  Saving model ...
+Updating learning rate to 0.001
+	iters: 100, epoch: 2 | loss: 0.1506230
+	speed: 0.0360s/iter; left time: 36.9379s
+	iters: 200, epoch: 2 | loss: 0.1290710
+	speed: 0.0167s/iter; left time: 15.4877s
+	iters: 300, epoch: 2 | loss: 0.1311136
+	speed: 0.0167s/iter; left time: 13.8002s
+	iters: 400, epoch: 2 | loss: 0.1456122
+	speed: 0.0167s/iter; left time: 12.1116s
+	iters: 500, epoch: 2 | loss: 0.1270123
+	speed: 0.0170s/iter; left time: 10.6524s
+	iters: 600, epoch: 2 | loss: 0.1472192
+	speed: 0.0171s/iter; left time: 8.9634s
+	iters: 700, epoch: 2 | loss: 0.1250909
+	speed: 0.0170s/iter; left time: 7.2391s
+	iters: 800, epoch: 2 | loss: 0.1334561
+	speed: 0.0168s/iter; left time: 5.4676s
+	iters: 900, epoch: 2 | loss: 0.1429589
+	speed: 0.0168s/iter; left time: 3.7859s
+	iters: 1000, epoch: 2 | loss: 0.1020474
+	speed: 0.0170s/iter; left time: 2.1243s
+	iters: 1100, epoch: 2 | loss: 0.1608840
+	speed: 0.0168s/iter; left time: 0.4212s
+Epoch: 2 cost time: 19.005561351776123
+Epoch: 2, Steps: 1124 | Train Loss: 0.1289040 Vali Loss: 0.1189704
+EarlyStopping counter: 1 out of 2
+Updating learning rate to 0.0005
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.2165034161162587, "best_mse": 0.11855549876687435, "epochs_ran": 2, "metric_version": "element_weighted_v1"}
+>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<

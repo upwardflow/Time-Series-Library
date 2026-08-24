@@ -1,0 +1,221 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTm2_96_720_ettm2_p720_s2022_darc_frozenModel:              GraphMambaAF        
+
+[1mData Loader[0m
+  Data:               ETTm2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                ettm2_p720_s2022_darc_frozenLoss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaAF ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_ETTm2_96_720_ettm2_p720_s2022_darc_frozen_GraphMambaAF_ETTm2_ftM_sl96_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_ettm2_p720_s2022_darc_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_residual_h32>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 33745
+val 10801
+	iters: 100, epoch: 1 | loss: 1.3162711
+	speed: 0.0119s/iter; left time: 1258.9998s
+	iters: 200, epoch: 1 | loss: 0.9847455
+	speed: 0.0099s/iter; left time: 1047.6502s
+	iters: 300, epoch: 1 | loss: 1.3225795
+	speed: 0.0101s/iter; left time: 1059.9735s
+	iters: 400, epoch: 1 | loss: 0.8164032
+	speed: 0.0101s/iter; left time: 1066.5537s
+	iters: 500, epoch: 1 | loss: 0.4473672
+	speed: 0.0099s/iter; left time: 1042.4877s
+	iters: 600, epoch: 1 | loss: 0.4085017
+	speed: 0.0101s/iter; left time: 1057.9472s
+	iters: 700, epoch: 1 | loss: 0.6642611
+	speed: 0.0102s/iter; left time: 1071.7857s
+	iters: 800, epoch: 1 | loss: 1.1418558
+	speed: 0.0101s/iter; left time: 1062.7133s
+	iters: 900, epoch: 1 | loss: 0.6395516
+	speed: 0.0102s/iter; left time: 1064.3555s
+	iters: 1000, epoch: 1 | loss: 0.2711622
+	speed: 0.0102s/iter; left time: 1067.8184s
+Epoch: 1 cost time: 10.851272106170654
+Epoch: 1, Steps: 1055 | Train Loss: 0.6014714 Vali Loss: 0.2886394
+Validation loss decreased (inf --> 0.288639).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.5164587
+	speed: 0.0300s/iter; left time: 3134.3707s
+	iters: 200, epoch: 2 | loss: 0.4444672
+	speed: 0.0103s/iter; left time: 1069.6741s
+	iters: 300, epoch: 2 | loss: 0.8268635
+	speed: 0.0100s/iter; left time: 1041.5988s
+	iters: 400, epoch: 2 | loss: 1.1573744
+	speed: 0.0104s/iter; left time: 1082.6539s
+	iters: 500, epoch: 2 | loss: 0.3319221
+	speed: 0.0103s/iter; left time: 1068.2550s
+	iters: 600, epoch: 2 | loss: 0.6673958
+	speed: 0.0101s/iter; left time: 1045.0674s
+	iters: 700, epoch: 2 | loss: 0.3617849
+	speed: 0.0101s/iter; left time: 1049.1436s
+	iters: 800, epoch: 2 | loss: 0.8108515
+	speed: 0.0102s/iter; left time: 1052.8316s
+	iters: 900, epoch: 2 | loss: 0.3981418
+	speed: 0.0101s/iter; left time: 1041.1104s
+	iters: 1000, epoch: 2 | loss: 0.7918566
+	speed: 0.0103s/iter; left time: 1061.5595s
+Epoch: 2 cost time: 10.752593040466309
+Epoch: 2, Steps: 1055 | Train Loss: 0.5784894 Vali Loss: 0.3021409
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 0.8275061
+	speed: 0.0297s/iter; left time: 3069.1105s
+	iters: 200, epoch: 3 | loss: 0.3430268
+	speed: 0.0101s/iter; left time: 1047.3713s
+	iters: 300, epoch: 3 | loss: 0.5176306
+	speed: 0.0102s/iter; left time: 1054.6738s
+	iters: 400, epoch: 3 | loss: 0.5258598
+	speed: 0.0102s/iter; left time: 1049.6186s
+	iters: 500, epoch: 3 | loss: 0.4379006
+	speed: 0.0102s/iter; left time: 1050.7741s
+	iters: 600, epoch: 3 | loss: 0.8284565
+	speed: 0.0102s/iter; left time: 1045.7425s
+	iters: 700, epoch: 3 | loss: 0.3005090
+	speed: 0.0101s/iter; left time: 1040.7666s
+	iters: 800, epoch: 3 | loss: 0.4483062
+	speed: 0.0102s/iter; left time: 1041.5485s
+	iters: 900, epoch: 3 | loss: 0.6290974
+	speed: 0.0100s/iter; left time: 1027.2297s
+	iters: 1000, epoch: 3 | loss: 0.5056685
+	speed: 0.0101s/iter; left time: 1032.6907s
+Epoch: 3 cost time: 10.703764200210571
+Epoch: 3, Steps: 1055 | Train Loss: 0.5544943 Vali Loss: 0.3044856
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 0.3858191
+	speed: 0.0293s/iter; left time: 3000.1429s
+	iters: 200, epoch: 4 | loss: 0.3605490
+	speed: 0.0102s/iter; left time: 1039.9803s
+	iters: 300, epoch: 4 | loss: 0.3840055
+	speed: 0.0101s/iter; left time: 1028.3544s
+	iters: 400, epoch: 4 | loss: 0.6311135
+	speed: 0.0100s/iter; left time: 1014.8537s
+	iters: 500, epoch: 4 | loss: 0.4855247
+	speed: 0.0101s/iter; left time: 1023.8953s
+	iters: 600, epoch: 4 | loss: 0.2497425
+	speed: 0.0102s/iter; left time: 1033.6926s
+	iters: 700, epoch: 4 | loss: 0.7437271
+	speed: 0.0100s/iter; left time: 1016.5316s
+	iters: 800, epoch: 4 | loss: 0.5971463
+	speed: 0.0100s/iter; left time: 1019.7814s
+	iters: 900, epoch: 4 | loss: 0.2317834
+	speed: 0.0101s/iter; left time: 1023.2528s
+	iters: 1000, epoch: 4 | loss: 0.4792202
+	speed: 0.0101s/iter; left time: 1019.8144s
+Epoch: 4 cost time: 10.615701913833618
+Epoch: 4, Steps: 1055 | Train Loss: 0.5366240 Vali Loss: 0.3124970
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.4783559
+	speed: 0.0294s/iter; left time: 2979.6634s
+	iters: 200, epoch: 5 | loss: 0.4545350
+	speed: 0.0102s/iter; left time: 1027.7718s
+	iters: 300, epoch: 5 | loss: 0.2869259
+	speed: 0.0101s/iter; left time: 1015.0537s
+	iters: 400, epoch: 5 | loss: 0.5799267
+	speed: 0.0101s/iter; left time: 1019.5898s
+	iters: 500, epoch: 5 | loss: 0.4144704
+	speed: 0.0100s/iter; left time: 1012.2787s
+	iters: 600, epoch: 5 | loss: 0.7180395
+	speed: 0.0102s/iter; left time: 1022.1672s
+	iters: 700, epoch: 5 | loss: 0.6643422
+	speed: 0.0101s/iter; left time: 1018.4460s
+	iters: 800, epoch: 5 | loss: 0.3761270
+	speed: 0.0101s/iter; left time: 1011.1563s
+	iters: 900, epoch: 5 | loss: 0.5911245
+	speed: 0.0099s/iter; left time: 996.7680s
+	iters: 1000, epoch: 5 | loss: 0.9398825
+	speed: 0.0100s/iter; left time: 1003.1595s
+Epoch: 5 cost time: 10.634957075119019
+Epoch: 5, Steps: 1055 | Train Loss: 0.5260589 Vali Loss: 0.3104995
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.4513473
+	speed: 0.0294s/iter; left time: 2939.9325s
+	iters: 200, epoch: 6 | loss: 0.4157915
+	speed: 0.0100s/iter; left time: 996.8643s
+	iters: 300, epoch: 6 | loss: 0.4881411
+	speed: 0.0101s/iter; left time: 1010.2673s
+	iters: 400, epoch: 6 | loss: 0.3528514
+	speed: 0.0102s/iter; left time: 1014.9103s
+	iters: 500, epoch: 6 | loss: 0.4932255
+	speed: 0.0100s/iter; left time: 997.2048s
+	iters: 600, epoch: 6 | loss: 0.4394755
+	speed: 0.0101s/iter; left time: 1006.3478s
+	iters: 700, epoch: 6 | loss: 0.5831108
+	speed: 0.0101s/iter; left time: 1007.3152s
+	iters: 800, epoch: 6 | loss: 0.2856701
+	speed: 0.0101s/iter; left time: 1000.8353s
+	iters: 900, epoch: 6 | loss: 0.3099015
+	speed: 0.0102s/iter; left time: 1015.4635s
+	iters: 1000, epoch: 6 | loss: 0.7593262
+	speed: 0.0100s/iter; left time: 991.1661s
+Epoch: 6 cost time: 10.643712520599365
+Epoch: 6, Steps: 1055 | Train Loss: 0.5194302 Vali Loss: 0.3087508
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.2721413
+	speed: 0.0294s/iter; left time: 2911.8286s
+	iters: 200, epoch: 7 | loss: 0.3808205
+	speed: 0.0100s/iter; left time: 985.0303s
+	iters: 300, epoch: 7 | loss: 0.4979179
+	speed: 0.0101s/iter; left time: 1000.8754s
+	iters: 400, epoch: 7 | loss: 0.9095215
+	speed: 0.0101s/iter; left time: 1002.3896s
+	iters: 500, epoch: 7 | loss: 0.8455707
+	speed: 0.0103s/iter; left time: 1019.5507s
+	iters: 600, epoch: 7 | loss: 0.4415060
+	speed: 0.0102s/iter; left time: 1001.7507s
+	iters: 700, epoch: 7 | loss: 0.5764447
+	speed: 0.0102s/iter; left time: 1005.9981s
+	iters: 800, epoch: 7 | loss: 0.3705371
+	speed: 0.0101s/iter; left time: 996.4821s
+	iters: 900, epoch: 7 | loss: 0.4842788
+	speed: 0.0103s/iter; left time: 1012.7995s
+	iters: 1000, epoch: 7 | loss: 0.3145604
+	speed: 0.0101s/iter; left time: 988.0462s
+Epoch: 7 cost time: 10.692340850830078
+Epoch: 7, Steps: 1055 | Train Loss: 0.5170971 Vali Loss: 0.3114729
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.36753446034429177, "best_mse": 0.2886394169903663, "epochs_ran": 7, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_ETTm2_96_720_ettm2_p720_s2022_darc_frozen_GraphMambaAF_ETTm2_ftM_sl96_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_ettm2_p720_s2022_darc_frozen_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_residual_h32<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 10801
+test shape: (10801, 720, 7) (10801, 720, 7)
+test shape: (10801, 720, 7) (10801, 720, 7)
+mse:0.4010089039802551, mae:0.39860695600509644, dtw:Not calculated

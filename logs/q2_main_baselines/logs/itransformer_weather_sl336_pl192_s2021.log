@@ -1,0 +1,156 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           itransformer_weather_sl336_pl192_s2021Model:              iTransformer        
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/weather
+  Data Path:          weather.csv         Features:           M                   
+  Target:             CO2 (ppm)           Freq:               t                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             21                  Dec In:             21                  
+  C Out:              21                  d model:            512                 
+  n heads:            8                   e layers:           3                   
+  d layers:           1                   d FF:               512                 
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                itransformer_weather_sl336_pl192_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: iTransformer ...
+>>>>>>>start training : long_term_forecast_itransformer_weather_sl336_pl192_s2021_iTransformer_custom_ftM_sl336_ll48_pl192_dm512_nh8_el3_dl1_df512_expand2_dc4_fc3_ebtimeF_dtTrue_itransformer_weather_sl336_pl192_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 36360
+val 5079
+	iters: 100, epoch: 1 | loss: 0.5075054
+	speed: 0.0098s/iter; left time: 110.6964s
+	iters: 200, epoch: 1 | loss: 1.0204929
+	speed: 0.0076s/iter; left time: 84.8783s
+	iters: 300, epoch: 1 | loss: 0.3861917
+	speed: 0.0075s/iter; left time: 82.7983s
+	iters: 400, epoch: 1 | loss: 0.5522943
+	speed: 0.0077s/iter; left time: 84.2183s
+	iters: 500, epoch: 1 | loss: 0.4359894
+	speed: 0.0074s/iter; left time: 80.7076s
+	iters: 600, epoch: 1 | loss: 0.4458959
+	speed: 0.0073s/iter; left time: 78.9916s
+	iters: 700, epoch: 1 | loss: 0.3365990
+	speed: 0.0081s/iter; left time: 86.0861s
+	iters: 800, epoch: 1 | loss: 0.9490465
+	speed: 0.0079s/iter; left time: 83.4472s
+	iters: 900, epoch: 1 | loss: 0.8111287
+	speed: 0.0076s/iter; left time: 79.6095s
+	iters: 1000, epoch: 1 | loss: 0.3590883
+	speed: 0.0078s/iter; left time: 80.8400s
+	iters: 1100, epoch: 1 | loss: 0.3366997
+	speed: 0.0077s/iter; left time: 79.1114s
+Epoch: 1 cost time: 8.912646532058716
+Epoch: 1, Steps: 1137 | Train Loss: 0.4900423 Vali Loss: 0.4770379
+Validation loss decreased (inf --> 0.477038).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.3894414
+	speed: 0.0159s/iter; left time: 161.5763s
+	iters: 200, epoch: 2 | loss: 0.2662001
+	speed: 0.0076s/iter; left time: 76.0039s
+	iters: 300, epoch: 2 | loss: 0.2405153
+	speed: 0.0076s/iter; left time: 75.5555s
+	iters: 400, epoch: 2 | loss: 0.3924891
+	speed: 0.0075s/iter; left time: 74.1951s
+	iters: 500, epoch: 2 | loss: 0.4796222
+	speed: 0.0077s/iter; left time: 75.0426s
+	iters: 600, epoch: 2 | loss: 0.3373142
+	speed: 0.0079s/iter; left time: 75.6873s
+	iters: 700, epoch: 2 | loss: 0.8086248
+	speed: 0.0075s/iter; left time: 71.2413s
+	iters: 800, epoch: 2 | loss: 0.4601506
+	speed: 0.0078s/iter; left time: 73.1201s
+	iters: 900, epoch: 2 | loss: 0.3323229
+	speed: 0.0076s/iter; left time: 70.6911s
+	iters: 1000, epoch: 2 | loss: 0.3147494
+	speed: 0.0078s/iter; left time: 71.7694s
+	iters: 1100, epoch: 2 | loss: 0.3034189
+	speed: 0.0079s/iter; left time: 72.0184s
+Epoch: 2 cost time: 8.723355531692505
+Epoch: 2, Steps: 1137 | Train Loss: 0.4238508 Vali Loss: 0.5119330
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.2309326
+	speed: 0.0157s/iter; left time: 141.1871s
+	iters: 200, epoch: 3 | loss: 0.3199709
+	speed: 0.0077s/iter; left time: 68.9257s
+	iters: 300, epoch: 3 | loss: 0.4031807
+	speed: 0.0080s/iter; left time: 70.1374s
+	iters: 400, epoch: 3 | loss: 0.2906845
+	speed: 0.0079s/iter; left time: 68.9919s
+	iters: 500, epoch: 3 | loss: 0.8166820
+	speed: 0.0077s/iter; left time: 66.0894s
+	iters: 600, epoch: 3 | loss: 1.2368113
+	speed: 0.0075s/iter; left time: 63.5618s
+	iters: 700, epoch: 3 | loss: 0.2592831
+	speed: 0.0079s/iter; left time: 66.6627s
+	iters: 800, epoch: 3 | loss: 0.2946273
+	speed: 0.0078s/iter; left time: 64.7317s
+	iters: 900, epoch: 3 | loss: 0.2396368
+	speed: 0.0076s/iter; left time: 61.9707s
+	iters: 1000, epoch: 3 | loss: 0.3136011
+	speed: 0.0078s/iter; left time: 63.0175s
+	iters: 1100, epoch: 3 | loss: 0.3128160
+	speed: 0.0077s/iter; left time: 61.3911s
+Epoch: 3 cost time: 8.803560733795166
+Epoch: 3, Steps: 1137 | Train Loss: 0.3804452 Vali Loss: 0.5278276
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.2077418
+	speed: 0.0150s/iter; left time: 118.2329s
+	iters: 200, epoch: 4 | loss: 0.5051787
+	speed: 0.0073s/iter; left time: 56.8707s
+	iters: 300, epoch: 4 | loss: 0.2244064
+	speed: 0.0075s/iter; left time: 57.7144s
+	iters: 400, epoch: 4 | loss: 0.3104501
+	speed: 0.0076s/iter; left time: 57.5516s
+	iters: 500, epoch: 4 | loss: 0.2599909
+	speed: 0.0077s/iter; left time: 57.5555s
+	iters: 600, epoch: 4 | loss: 0.2527273
+	speed: 0.0076s/iter; left time: 55.8964s
+	iters: 700, epoch: 4 | loss: 0.3444434
+	speed: 0.0077s/iter; left time: 56.1406s
+	iters: 800, epoch: 4 | loss: 0.3222585
+	speed: 0.0077s/iter; left time: 55.1540s
+	iters: 900, epoch: 4 | loss: 0.7554622
+	speed: 0.0078s/iter; left time: 55.2304s
+	iters: 1000, epoch: 4 | loss: 0.2754713
+	speed: 0.0078s/iter; left time: 54.0131s
+	iters: 1100, epoch: 4 | loss: 0.7762113
+	speed: 0.0079s/iter; left time: 54.1325s
+Epoch: 4 cost time: 8.7193922996521
+Epoch: 4, Steps: 1137 | Train Loss: 0.3607644 Vali Loss: 0.5425717
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.3336970689265972, "best_mse": 0.4770378677623338, "epochs_ran": 4, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_itransformer_weather_sl336_pl192_s2021_iTransformer_custom_ftM_sl336_ll48_pl192_dm512_nh8_el3_dl1_df512_expand2_dc4_fc3_ebtimeF_dtTrue_itransformer_weather_sl336_pl192_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 10348
+test shape: (10348, 192, 21) (10348, 192, 21)
+test shape: (10348, 192, 21) (10348, 192, 21)
+mse:0.2086935192346573, mae:0.2527061402797699, dtw:Not calculated

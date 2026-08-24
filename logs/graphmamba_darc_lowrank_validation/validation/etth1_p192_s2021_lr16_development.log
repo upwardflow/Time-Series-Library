@@ -1,0 +1,54 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           ETTh1_96_192_etth1_p192_s2021_lr16_developmentModel:              GraphMambaAF        
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        ./checkpoints/      
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           192                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                etth1_p192_s2021_lr16_developmentLoss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMambaAF ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_ETTh1_96_192_etth1_p192_s2021_lr16_development_GraphMambaAF_ETTh1_ftM_sl96_ll48_pl192_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p192_s2021_lr16_development_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_lowrank_h32_r16>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8353
+val 2689
+Traceback (most recent call last):
+  File "/home/cwh/Time-Series-Library/run.py", line 309, in <module>
+    exp.train(setting)
+  File "/home/cwh/Time-Series-Library/exp/exp_long_term_forecasting.py", line 89, in train
+    os.makedirs(path)
+  File "<frozen os>", line 225, in makedirs
+OSError: [Errno 36] File name too long: './checkpoints/long_term_forecast_ETTh1_96_192_etth1_p192_s2021_lr16_development_GraphMambaAF_ETTh1_ftM_sl96_ll48_pl192_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_etth1_p192_s2021_lr16_development_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_afvariable_scale_lowrank_h32_r16'

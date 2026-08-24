@@ -1,0 +1,76 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           p0_timemixer_electricity_l336_h96_s2021Model:              TimeMixer           
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/electricity
+  Data Path:          electricity.csv     Features:           M                   
+  Target:             0                   Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timerole_p0/ecl_solar/pilot/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             321                 Dec In:             321                 
+  C Out:              321                 d model:            16                  
+  n heads:            4                   e layers:           3                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       2                   Batch Size:         32                  
+  Patience:           2                   Learning Rate:      0.01                
+  Des:                p0_timemixer_electricity_l336_h96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeMixer ...
+>>>>>>>start training : long_term_forecast_p0_timemixer_electricity_l336_h96_s2021_TimeMixer_custom_ftM_sl336_ll0_pl96_dm16_nh4_el3_dl1_df32_expand2_dc4_fc3_ebtimeF_dtTrue_p0_timemixer_electricity_l336_h96_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 17981
+val 2537
+	iters: 100, epoch: 1 | loss: 0.2439246
+	speed: 0.2472s/iter; left time: 253.3437s
+	iters: 200, epoch: 1 | loss: 0.1921764
+	speed: 0.2381s/iter; left time: 220.2286s
+	iters: 300, epoch: 1 | loss: 0.2235984
+	speed: 0.2388s/iter; left time: 196.9759s
+	iters: 400, epoch: 1 | loss: 0.1874446
+	speed: 0.2388s/iter; left time: 173.1600s
+	iters: 500, epoch: 1 | loss: 0.2033159
+	speed: 0.2375s/iter; left time: 148.4323s
+Epoch: 1 cost time: 134.45344138145447
+Epoch: 1, Steps: 562 | Train Loss: 1.2687161 Vali Loss: 0.1512911
+Validation loss decreased (inf --> 0.151291).  Saving model ...
+Updating learning rate to 0.01
+	iters: 100, epoch: 2 | loss: 0.1672862
+	speed: 0.4651s/iter; left time: 215.3325s
+	iters: 200, epoch: 2 | loss: 0.1691214
+	speed: 0.2389s/iter; left time: 86.7068s
+	iters: 300, epoch: 2 | loss: 0.1633803
+	speed: 0.2385s/iter; left time: 62.7248s
+	iters: 400, epoch: 2 | loss: 0.1527032
+	speed: 0.2388s/iter; left time: 38.9234s
+	iters: 500, epoch: 2 | loss: 0.1544970
+	speed: 0.2386s/iter; left time: 15.0334s
+Epoch: 2 cost time: 134.0147066116333
+Epoch: 2, Steps: 562 | Train Loss: 0.1705960 Vali Loss: 0.1349282
+Validation loss decreased (0.151291 --> 0.134928).  Saving model ...
+Updating learning rate to 0.005
+VALIDATION_RESULT {"best_epoch": 2, "best_mae": 0.23725998647937574, "best_mse": 0.13492819110394036, "epochs_ran": 2, "metric_version": "element_weighted_v1"}
+>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<

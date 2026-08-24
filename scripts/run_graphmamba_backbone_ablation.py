@@ -189,35 +189,46 @@ def execute(
         selector = selectors.DefaultSelector()
         selector.register(process.stdout, selectors.EVENT_READ)
         deadline = started + timeout_seconds
-        while True:
-            for key, _ in selector.select(timeout=1.0):
-                line = key.fileobj.readline()
-                if line:
-                    print(line, end="", flush=True)
-                    handle.write(line)
-                    handle.flush()
-                    match = pattern.match(line.strip())
-                    if match:
-                        result = json.loads(match.group(1))
-            if process.poll() is not None:
-                for line in process.stdout:
-                    print(line, end="", flush=True)
-                    handle.write(line)
-                    match = pattern.match(line.strip())
-                    if match:
-                        result = json.loads(match.group(1))
-                return_code = process.returncode
-                break
-            if time.monotonic() >= deadline:
+        try:
+            while True:
+                for key, _ in selector.select(timeout=1.0):
+                    line = key.fileobj.readline()
+                    if line:
+                        print(line, end="", flush=True)
+                        handle.write(line)
+                        handle.flush()
+                        match = pattern.match(line.strip())
+                        if match:
+                            result = json.loads(match.group(1))
+                if process.poll() is not None:
+                    for line in process.stdout:
+                        print(line, end="", flush=True)
+                        handle.write(line)
+                        match = pattern.match(line.strip())
+                        if match:
+                            result = json.loads(match.group(1))
+                    return_code = process.returncode
+                    break
+                if time.monotonic() >= deadline:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+                    return_code = 124
+                    break
+        except BaseException:
+            if process.poll() is None:
                 process.terminate()
                 try:
                     process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
-                return_code = 124
-                break
-        selector.close()
+            raise
+        finally:
+            selector.close()
     return return_code, result, time.monotonic() - started
 
 

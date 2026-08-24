@@ -1,0 +1,92 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           dlinear_etth2_sl336_pl336_s2021Model:              DLinear             
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/q2_main_baselines/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           336                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            32                  
+  n heads:            4                   e layers:           2                   
+  d layers:           1                   d FF:               64                  
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                dlinear_etth2_sl336_pl336_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: DLinear ...
+>>>>>>>start training : long_term_forecast_dlinear_etth2_sl336_pl336_s2021_DLinear_ETTh2_ftM_sl336_ll48_pl336_dm32_nh4_el2_dl1_df64_expand2_dc4_fc3_ebtimeF_dtTrue_dlinear_etth2_sl336_pl336_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 7969
+val 2545
+	iters: 100, epoch: 1 | loss: 0.8605813
+	speed: 0.0113s/iter; left time: 27.1565s
+	iters: 200, epoch: 1 | loss: 0.5471625
+	speed: 0.0038s/iter; left time: 8.7444s
+Epoch: 1 cost time: 1.0993766784667969
+Epoch: 1, Steps: 250 | Train Loss: 0.6027509 Vali Loss: 0.4379774
+Validation loss decreased (inf --> 0.437977).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.5593534
+	speed: 0.0094s/iter; left time: 20.2021s
+	iters: 200, epoch: 2 | loss: 0.3901266
+	speed: 0.0043s/iter; left time: 8.7679s
+Epoch: 2 cost time: 1.0382685661315918
+Epoch: 2, Steps: 250 | Train Loss: 0.5814358 Vali Loss: 0.4090833
+Validation loss decreased (0.437977 --> 0.409083).  Saving model ...
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.4064823
+	speed: 0.0079s/iter; left time: 15.0387s
+	iters: 200, epoch: 3 | loss: 0.8486063
+	speed: 0.0034s/iter; left time: 6.1831s
+Epoch: 3 cost time: 0.8716189861297607
+Epoch: 3, Steps: 250 | Train Loss: 0.5752840 Vali Loss: 0.4183652
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.9163910
+	speed: 0.0073s/iter; left time: 12.1340s
+	iters: 200, epoch: 4 | loss: 0.7033630
+	speed: 0.0034s/iter; left time: 5.2925s
+Epoch: 4 cost time: 0.8541989326477051
+Epoch: 4, Steps: 250 | Train Loss: 0.5724925 Vali Loss: 0.4202245
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 1.25e-05
+	iters: 100, epoch: 5 | loss: 0.6139739
+	speed: 0.0067s/iter; left time: 9.3499s
+	iters: 200, epoch: 5 | loss: 0.7519109
+	speed: 0.0034s/iter; left time: 4.3614s
+Epoch: 5 cost time: 0.8772430419921875
+Epoch: 5, Steps: 250 | Train Loss: 0.5707226 Vali Loss: 0.4163900
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 2, "best_mae": 0.4463421813500695, "best_mse": 0.4090833462022456, "epochs_ran": 5, "metric_version": "element_weighted_v1"}
+>>>>>>>testing : long_term_forecast_dlinear_etth2_sl336_pl336_s2021_DLinear_ETTh2_ftM_sl336_ll48_pl336_dm32_nh4_el2_dl1_df64_expand2_dc4_fc3_ebtimeF_dtTrue_dlinear_etth2_sl336_pl336_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2545
+test shape: (2545, 336, 7) (2545, 336, 7)
+test shape: (2545, 336, 7) (2545, 336, 7)
+mse:0.47800058126449585, mae:0.4805224537849426, dtw:Not calculated
