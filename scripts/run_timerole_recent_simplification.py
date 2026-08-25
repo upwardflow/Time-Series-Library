@@ -25,6 +25,8 @@ VALIDATION_PATTERN = re.compile(r"^VALIDATION_RESULT\s+(\{.*\})\s*$")
 EVALUATION_PATTERN = re.compile(r"^EVALUATION_RESULT\s+(\{.*\})\s*$")
 SEEDS = (2021, 2022, 2023)
 HORIZONS = (96, 720)
+PHASE_C_VARIANTS = ("R0", "R2", "R4")
+PHASE_C_NEW_SEEDS = (2022, 2023)
 
 
 @dataclass(frozen=True)
@@ -63,8 +65,12 @@ CANDIDATES = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--stage", choices=("smoke", "phase_b"), default="smoke")
-    parser.add_argument("--role", choices=("timerole", "recent"), default="timerole")
+    parser.add_argument(
+        "--stage", choices=("smoke", "phase_b", "phase_c"), default="smoke"
+    )
+    parser.add_argument(
+        "--role", choices=("timerole", "recent", "both"), default="timerole"
+    )
     parser.add_argument("--datasets", nargs="+", choices=tuple(DATASETS))
     parser.add_argument("--horizons", nargs="+", type=int, choices=HORIZONS)
     parser.add_argument("--seeds", nargs="+", type=int, choices=SEEDS)
@@ -83,6 +89,21 @@ def parse_args() -> argparse.Namespace:
         parser.error("epochs, patience, timeout, and check interval must be positive")
     if args.stall_seconds < args.check_interval_seconds:
         parser.error("stall-seconds must be at least check-interval-seconds")
+    if args.role == "both" and args.stage != "phase_c":
+        parser.error("--role both is reserved for the paired Phase C queue")
+    if args.stage == "phase_c":
+        variants = tuple(args.variants or PHASE_C_VARIANTS)
+        invalid_variants = sorted(set(variants) - set(PHASE_C_VARIANTS))
+        if invalid_variants:
+            parser.error(
+                "Phase C is frozen to R0/R2/R4; invalid variants: "
+                + ", ".join(invalid_variants)
+            )
+        seeds = tuple(args.seeds or PHASE_C_NEW_SEEDS)
+        if 2021 in seeds:
+            parser.error(
+                "Phase C seed 2021 is reused from Phase B and must not be retrained"
+            )
     return args
 
 
@@ -241,15 +262,21 @@ def tasks(args: argparse.Namespace) -> list[tuple[str, str, str, int, int, str]]
         horizons = args.horizons or [96]
         seeds = args.seeds or [2021]
         variants = args.variants or list(CANDIDATES)
-    else:
+    elif args.stage == "phase_b":
         datasets = args.datasets or list(DATASETS)
         horizons = args.horizons or list(HORIZONS)
         seeds = args.seeds or [2021]
         variants = args.variants or list(CANDIDATES)
+    else:
+        datasets = args.datasets or list(DATASETS)
+        horizons = args.horizons or list(HORIZONS)
+        seeds = args.seeds or list(PHASE_C_NEW_SEEDS)
+        variants = args.variants or list(PHASE_C_VARIANTS)
+    roles = ("timerole", "recent") if args.role == "both" else (args.role,)
     result = [
-        (args.stage, args.role, dataset, horizon, seed, variant)
+        (args.stage, role, dataset, horizon, seed, variant)
         for dataset in datasets for horizon in horizons
-        for seed in seeds for variant in variants
+        for seed in seeds for variant in variants for role in roles
     ]
     if args.max_jobs > 0:
         result = result[:args.max_jobs]
@@ -470,6 +497,16 @@ def write_manifest(args: argparse.Namespace, task_list: list[tuple[str, str, str
         "stage": args.stage, "validation_only": True, "test_accessed": False,
         "scan_mode": "independent_shared", "data_order_isolated": True,
         "validation_shuffle": False, "output_root": str(OUTPUT),
+        "phase_b_reuse": (
+            {
+                "stage": "phase_b",
+                "seed": 2021,
+                "roles": ["timerole", "recent"],
+                "variants": list(PHASE_C_VARIANTS),
+                "record_count": 36,
+            }
+            if args.stage == "phase_c" else None
+        ),
         "arguments": vars(args), "environment": environment_fingerprint(),
         "tasks": [
             dict(zip(("stage", "role", "dataset", "horizon", "seed", "variant"), task))
