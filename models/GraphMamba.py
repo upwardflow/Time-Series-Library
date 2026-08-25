@@ -109,13 +109,26 @@ class Model(nn.Module):
         if self.dual_scale_scan_mode not in {
             "joint",
             "independent_shared",
+            "independent_unshared",
             "periodic_aligned",
         }:
             raise ValueError(
                 "dual_scale_scan_mode must be 'joint', 'independent_shared', "
-                "or 'periodic_aligned' (configuration may also request 'auto')"
+                "'independent_unshared', or 'periodic_aligned' "
+                "(configuration may also request 'auto')"
+            )
+        self.dual_scale_selection = getattr(
+            configs, "dual_scale_selection", "dual"
+        )
+        if self.dual_scale_selection not in {"dual", "coarse", "fine"}:
+            raise ValueError(
+                "dual_scale_selection must be 'dual', 'coarse', or 'fine'"
             )
         self.use_periodic_multiscale = self.dual_scale_scan_mode == "periodic_aligned"
+        if self.use_periodic_multiscale and self.dual_scale_selection != "dual":
+            raise ValueError(
+                "periodic_aligned currently requires dual_scale_selection='dual'"
+            )
         if self.use_periodic_multiscale and not (
             self.use_patch and self.use_time_mamba
         ):
@@ -221,7 +234,12 @@ class Model(nn.Module):
                 short_patches = (
                     (self.seq_len - self.short_patch_len) // self.short_stride + 2
                 )
-                n_patches = long_patches + short_patches
+                patch_counts = {
+                    "dual": long_patches + short_patches,
+                    "coarse": long_patches,
+                    "fine": short_patches,
+                }
+                n_patches = patch_counts[self.dual_scale_selection]
         else:
             self.pointwise_embedding = nn.Linear(1, self.d_model)
             n_patches = self.seq_len
@@ -232,26 +250,35 @@ class Model(nn.Module):
         nn.init.normal_(self.variable_embedding, std=0.02)
 
         if self.use_time_mamba:
-            encoder_layers = [
-                MambaEncoderLayer(
-                    d_model=self.d_model,
-                    d_ff=configs.d_ff,
-                    d_state=configs.d_state,
-                    d_conv=configs.d_conv,
-                    expand=configs.expand,
-                    dropout=configs.dropout,
-                    activation=configs.activation,
-                    mamba_version=configs.mamba_version,
-                    mamba_headdim=configs.mamba_headdim,
-                    scan_mode="time",
-                    bidirectional=bool(configs.mamba_bidirectional),
+            def build_encoder():
+                encoder_layers = [
+                    MambaEncoderLayer(
+                        d_model=self.d_model,
+                        d_ff=configs.d_ff,
+                        d_state=configs.d_state,
+                        d_conv=configs.d_conv,
+                        expand=configs.expand,
+                        dropout=configs.dropout,
+                        activation=configs.activation,
+                        mamba_version=configs.mamba_version,
+                        mamba_headdim=configs.mamba_headdim,
+                        scan_mode="time",
+                        bidirectional=bool(configs.mamba_bidirectional),
+                    )
+                    for _ in range(configs.e_layers)
+                ]
+                return MambaEncoder(
+                    encoder_layers,
+                    norm_layer=nn.LayerNorm(self.d_model),
                 )
-                for _ in range(configs.e_layers)
-            ]
-            self.encoder = MambaEncoder(
-                encoder_layers,
-                norm_layer=nn.LayerNorm(self.d_model),
-            )
+
+            self.encoder = build_encoder()
+            if self.dual_scale_scan_mode == "independent_unshared":
+                # Preserve the RNG trajectory of all downstream modules so the
+                # only paired structural difference is the extra fine encoder.
+                cpu_rng_state = torch.get_rng_state()
+                self.fine_encoder = build_encoder()
+                torch.set_rng_state(cpu_rng_state)
 
         if self.use_graph:
             data_path = Path(configs.root_path) / configs.data_path
@@ -382,7 +409,12 @@ class Model(nn.Module):
                 short_tokens = self.short_patch_embedding(seasonal)
                 long_tokens = long_tokens + self.variable_embedding
                 short_tokens = short_tokens + self.variable_embedding
-                tokens = torch.cat([long_tokens, short_tokens], dim=-1)
+                if self.dual_scale_selection == "dual":
+                    tokens = torch.cat([long_tokens, short_tokens], dim=-1)
+                elif self.dual_scale_selection == "coarse":
+                    tokens = long_tokens
+                else:
+                    tokens = short_tokens
         else:
             tokens = self.pointwise_embedding(seasonal.unsqueeze(-1))
             tokens = tokens.permute(0, 1, 3, 2) + self.variable_embedding
@@ -390,8 +422,21 @@ class Model(nn.Module):
         if not self.use_periodic_multiscale:
             if self.use_time_mamba:
                 if self.use_patch:
-                    if self.dual_scale_scan_mode == "joint":
+                    if self.dual_scale_selection == "coarse":
+                        temporal_output = self.encoder(long_tokens)
+                    elif self.dual_scale_selection == "fine":
+                        fine_encoder = getattr(self, "fine_encoder", self.encoder)
+                        temporal_output = fine_encoder(short_tokens)
+                    elif self.dual_scale_scan_mode == "joint":
                         temporal_output = self.encoder(tokens)
+                    elif self.dual_scale_scan_mode == "independent_unshared":
+                        temporal_output = torch.cat(
+                            [
+                                self.encoder(long_tokens),
+                                self.fine_encoder(short_tokens),
+                            ],
+                            dim=-1,
+                        )
                     else:
                         # Long and short patches are two sampling grids over the
                         # same history, not consecutive pieces of one sequence.

@@ -1,0 +1,108 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           scsd_baseline_etth2_p720_s2023_isModel:              GraphMamba          
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/graphmamba_scsd_validation/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            96                  Label Len:          48                  
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               128                 
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       100                 Batch Size:         32                  
+  Patience:           6                   Learning Rate:      0.0005              
+  Des:                scsd_baseline_etth2_p720_s2023_isLoss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: GraphMamba ...
+[GraphMamba] Building 7x7 static graph from 2000 training samples
+>>>>>>>start training : long_term_forecast_scsd_baseline_etth2_p720_s2023_is_GraphMamba_ETTh2_ftM_sl96_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_scsd_baseline_etth2_p720_s2023_is_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_smindependent_shared_ssdual>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 7825
+val 2161
+	iters: 100, epoch: 1 | loss: 1.0576198
+	speed: 0.0132s/iter; left time: 321.3492s
+	iters: 200, epoch: 1 | loss: 1.4161789
+	speed: 0.0112s/iter; left time: 273.3631s
+Epoch: 1 cost time: 2.9497876167297363
+Epoch: 1, Steps: 245 | Train Loss: 0.9267521 Vali Loss: 0.5939038
+Validation loss decreased (inf --> 0.593904).  Saving model ...
+Updating learning rate to 0.0005
+	iters: 100, epoch: 2 | loss: 0.7817786
+	speed: 0.0198s/iter; left time: 477.4481s
+	iters: 200, epoch: 2 | loss: 0.7782401
+	speed: 0.0111s/iter; left time: 266.6457s
+Epoch: 2 cost time: 2.7690651416778564
+Epoch: 2, Steps: 245 | Train Loss: 0.8303407 Vali Loss: 0.5986494
+EarlyStopping counter: 1 out of 6
+Updating learning rate to 0.00025
+	iters: 100, epoch: 3 | loss: 1.1697738
+	speed: 0.0198s/iter; left time: 474.0520s
+	iters: 200, epoch: 3 | loss: 1.0186255
+	speed: 0.0114s/iter; left time: 271.8067s
+Epoch: 3 cost time: 2.7777903079986572
+Epoch: 3, Steps: 245 | Train Loss: 0.8061334 Vali Loss: 0.6312937
+EarlyStopping counter: 2 out of 6
+Updating learning rate to 0.000125
+	iters: 100, epoch: 4 | loss: 1.0387825
+	speed: 0.0193s/iter; left time: 456.8094s
+	iters: 200, epoch: 4 | loss: 0.8343024
+	speed: 0.0111s/iter; left time: 261.2911s
+Epoch: 4 cost time: 2.7292537689208984
+Epoch: 4, Steps: 245 | Train Loss: 0.7934784 Vali Loss: 0.6278885
+EarlyStopping counter: 3 out of 6
+Updating learning rate to 6.25e-05
+	iters: 100, epoch: 5 | loss: 0.9706466
+	speed: 0.0190s/iter; left time: 444.9110s
+	iters: 200, epoch: 5 | loss: 1.0618554
+	speed: 0.0114s/iter; left time: 264.8013s
+Epoch: 5 cost time: 2.731060028076172
+Epoch: 5, Steps: 245 | Train Loss: 0.7865916 Vali Loss: 0.6200965
+EarlyStopping counter: 4 out of 6
+Updating learning rate to 3.125e-05
+	iters: 100, epoch: 6 | loss: 0.4909891
+	speed: 0.0192s/iter; left time: 444.0925s
+	iters: 200, epoch: 6 | loss: 0.9604419
+	speed: 0.0114s/iter; left time: 262.5012s
+Epoch: 6 cost time: 2.775108814239502
+Epoch: 6, Steps: 245 | Train Loss: 0.7802675 Vali Loss: 0.6344110
+EarlyStopping counter: 5 out of 6
+Updating learning rate to 1.5625e-05
+	iters: 100, epoch: 7 | loss: 0.5601052
+	speed: 0.0194s/iter; left time: 444.2410s
+	iters: 200, epoch: 7 | loss: 0.6715366
+	speed: 0.0111s/iter; left time: 252.6236s
+Epoch: 7 cost time: 2.7208828926086426
+Epoch: 7, Steps: 245 | Train Loss: 0.7775656 Vali Loss: 0.6229397
+EarlyStopping counter: 6 out of 6
+Early stopping
+VALIDATION_RESULT {"best_epoch": 1, "best_mae": 0.5315659903413827, "best_mse": 0.5939038134535011, "epochs_ran": 7, "metric_version": "element_weighted_v1", "train_duration_seconds": 21.977842502761632, "train_peak_cuda_memory_bytes": 620809728}
+>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<
+>>>>>>>evaluating validation checkpoint : long_term_forecast_scsd_baseline_etth2_p720_s2023_is_GraphMamba_ETTh2_ftM_sl96_ll48_pl720_dm64_nh8_el1_dl1_df128_expand2_dc2_fc1_ebtimeF_dtTrue_scsd_baseline_etth2_p720_s2023_is_0_patch4_st2_ds32_mv1_bi1_ga0.5_gk2_smindependent_shared_ssdual<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+val 2161
+EVALUATION_RESULT {"batches": 68, "elapsed_seconds": 0.3046421129256487, "elements": 10891440, "mae": 0.5315659892654231, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 4.48003107243601, "mse": 0.5939038091496625, "parameter_count": 6809318, "peak_cuda_memory_bytes": 201998848, "split": "val", "test_accessed": false, "timerole_intervention": "intact"}

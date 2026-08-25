@@ -232,6 +232,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return result
 
     def train(self, setting):
+        training_started = time.perf_counter()
+        if self.device.type == 'cuda':
+            torch.cuda.reset_peak_memory_stats(self.device)
         train_data, train_loader = self._get_data(flag='train')
         vali_data, vali_loader = self._get_data(flag='val')
 
@@ -331,6 +334,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             'best_mae': float(best_val_mae),
             'best_epoch': int(best_epoch),
             'epochs_ran': int(epoch + 1),
+            'train_duration_seconds': time.perf_counter() - training_started,
+            'train_peak_cuda_memory_bytes': (
+                int(torch.cuda.max_memory_allocated(self.device))
+                if self.device.type == 'cuda' else 0
+            ),
         }
         print('VALIDATION_RESULT ' + json.dumps(validation_result, sort_keys=True))
 

@@ -205,9 +205,12 @@ if __name__ == '__main__':
     parser.add_argument('--use_decomp', type=int, choices=[0, 1], default=1,
                         help='enable GraphMamba moving-average decomposition')
     parser.add_argument('--dual_scale_scan_mode',
-                        choices=['auto', 'joint', 'independent_shared', 'periodic_aligned'],
+                        choices=['auto', 'joint', 'independent_shared', 'independent_unshared', 'periodic_aligned'],
                         default='auto',
                         help='auto uses validated periodic mode on hourly ETT and independent scans elsewhere')
+    parser.add_argument('--dual_scale_selection',
+                        choices=['dual', 'coarse', 'fine'], default='dual',
+                        help='select both GraphMamba patch grids or one single-scale control')
     parser.add_argument('--periodic_period', type=int, default=24,
                         help='training-derived stable period used by periodic_aligned')
     parser.add_argument('--periodic_local_patch', type=int, default=0,
@@ -397,7 +400,7 @@ if __name__ == '__main__':
                                    + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
                                    + f'_a{args.periodic_use_adapter}'
                     else:
-                        setting += f'_sm{args.dual_scale_scan_mode}'
+                        setting += f'_sm{args.dual_scale_scan_mode}_ss{args.dual_scale_selection}'
                 if args.model == 'GraphMambaPeriodNorm':
                     setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
                                + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
@@ -420,6 +423,8 @@ if __name__ == '__main__':
                 exp.evaluate_checkpoint(setting, flag='test')
             else:
                 print('>>>>>>>test skipped (validation-only run)<<<<<<<<<<<<<<<<<<<<<<<<')
+                print('>>>>>>>evaluating validation checkpoint : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+                exp.evaluate_checkpoint(setting, flag='val')
             if args.use_gpu:
                 if args.gpu_type == 'mps':
                     torch.backends.mps.empty_cache()
@@ -466,7 +471,7 @@ if __name__ == '__main__':
                                + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
                                + f'_a{args.periodic_use_adapter}'
                 else:
-                    setting += f'_sm{args.dual_scale_scan_mode}'
+                    setting += f'_sm{args.dual_scale_scan_mode}_ss{args.dual_scale_selection}'
             if args.model == 'GraphMambaPeriodNorm':
                 setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
                            + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
