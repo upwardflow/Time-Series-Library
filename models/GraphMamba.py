@@ -216,20 +216,22 @@ class Model(nn.Module):
                 ) // self.periodic_period_stride + 1
                 n_patches = self.local_patch_count + self.period_patch_count
             else:
-                self.long_patch_embedding = PatchEmbedding(
-                    self.d_model,
-                    self.patch_len,
-                    self.stride,
-                    configs.dropout,
-                    self.n_vars,
-                )
-                self.short_patch_embedding = PatchEmbedding(
-                    self.d_model,
-                    self.short_patch_len,
-                    self.short_stride,
-                    configs.dropout,
-                    self.n_vars,
-                )
+                if self.dual_scale_selection in {"dual", "coarse"}:
+                    self.long_patch_embedding = PatchEmbedding(
+                        self.d_model,
+                        self.patch_len,
+                        self.stride,
+                        configs.dropout,
+                        self.n_vars,
+                    )
+                if self.dual_scale_selection in {"dual", "fine"}:
+                    self.short_patch_embedding = PatchEmbedding(
+                        self.d_model,
+                        self.short_patch_len,
+                        self.short_stride,
+                        configs.dropout,
+                        self.n_vars,
+                    )
                 long_patches = (self.seq_len - self.patch_len) // self.stride + 2
                 short_patches = (
                     (self.seq_len - self.short_patch_len) // self.short_stride + 2
@@ -273,7 +275,10 @@ class Model(nn.Module):
                 )
 
             self.encoder = build_encoder()
-            if self.dual_scale_scan_mode == "independent_unshared":
+            if (
+                self.dual_scale_scan_mode == "independent_unshared"
+                and self.dual_scale_selection == "dual"
+            ):
                 # Preserve the RNG trajectory of all downstream modules so the
                 # only paired structural difference is the extra fine encoder.
                 cpu_rng_state = torch.get_rng_state()
@@ -405,15 +410,26 @@ class Model(nn.Module):
             if self.use_periodic_multiscale:
                 fused_output = self._periodic_multiscale_states(seasonal)
             else:
-                long_tokens = self.long_patch_embedding(seasonal)
-                short_tokens = self.short_patch_embedding(seasonal)
-                long_tokens = long_tokens + self.variable_embedding
-                short_tokens = short_tokens + self.variable_embedding
+                long_tokens = None
+                short_tokens = None
+                if self.dual_scale_selection in {"dual", "coarse"}:
+                    long_tokens = (
+                        self.long_patch_embedding(seasonal)
+                        + self.variable_embedding
+                    )
+                if self.dual_scale_selection in {"dual", "fine"}:
+                    short_tokens = (
+                        self.short_patch_embedding(seasonal)
+                        + self.variable_embedding
+                    )
                 if self.dual_scale_selection == "dual":
+                    assert long_tokens is not None and short_tokens is not None
                     tokens = torch.cat([long_tokens, short_tokens], dim=-1)
                 elif self.dual_scale_selection == "coarse":
+                    assert long_tokens is not None
                     tokens = long_tokens
                 else:
+                    assert short_tokens is not None
                     tokens = short_tokens
         else:
             tokens = self.pointwise_embedding(seasonal.unsqueeze(-1))
@@ -423,13 +439,16 @@ class Model(nn.Module):
             if self.use_time_mamba:
                 if self.use_patch:
                     if self.dual_scale_selection == "coarse":
+                        assert long_tokens is not None
                         temporal_output = self.encoder(long_tokens)
                     elif self.dual_scale_selection == "fine":
+                        assert short_tokens is not None
                         fine_encoder = getattr(self, "fine_encoder", self.encoder)
                         temporal_output = fine_encoder(short_tokens)
                     elif self.dual_scale_scan_mode == "joint":
                         temporal_output = self.encoder(tokens)
                     elif self.dual_scale_scan_mode == "independent_unshared":
+                        assert long_tokens is not None and short_tokens is not None
                         temporal_output = torch.cat(
                             [
                                 self.encoder(long_tokens),
@@ -438,6 +457,7 @@ class Model(nn.Module):
                             dim=-1,
                         )
                     else:
+                        assert long_tokens is not None and short_tokens is not None
                         # Long and short patches are two sampling grids over the
                         # same history, not consecutive pieces of one sequence.
                         # Reuse the encoder parameters but reset state per scale.

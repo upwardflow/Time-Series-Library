@@ -204,6 +204,10 @@ if __name__ == '__main__':
                         help='enable GraphMamba dual-scale patching')
     parser.add_argument('--use_decomp', type=int, choices=[0, 1], default=1,
                         help='enable GraphMamba moving-average decomposition')
+    parser.add_argument('--graph_mamba_fusion',
+                        choices=['fixed_sum', 'graph_residual_gate'],
+                        default='fixed_sum',
+                        help='combine GraphMamba temporal and graph branches')
     parser.add_argument('--dual_scale_scan_mode',
                         choices=['auto', 'joint', 'independent_shared', 'independent_unshared', 'periodic_aligned'],
                         default='auto',

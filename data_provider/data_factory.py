@@ -1,6 +1,7 @@
 from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4, PSMSegLoader, \
     MSLSegLoader, SMAPSegLoader, SMDSegLoader, SWATSegLoader, UEAloader
 from data_provider.uea import collate_fn
+import torch
 from torch.utils.data import DataLoader
 
 data_dict = {
@@ -23,7 +24,15 @@ def data_provider(args, flag):
     Data = data_dict[args.data]
     timeenc = 0 if args.embed != 'timeF' else 1
 
-    shuffle_flag = False if (flag == 'test' or flag == 'TEST') else True
+    # Keep sampling randomness independent from model construction and dropout.
+    # This is required for paired architecture experiments: equal experiment
+    # seeds must produce equal epoch-wise train orders even when the models
+    # consume different amounts of the global torch RNG.
+    shuffle_flag = flag == 'train'
+    loader_generator = None
+    if shuffle_flag:
+        loader_generator = torch.Generator()
+        loader_generator.manual_seed(int(args.seed))
     drop_last = False
     batch_size = args.batch_size
     freq = args.freq
@@ -41,6 +50,7 @@ def data_provider(args, flag):
             data_set,
             batch_size=batch_size,
             shuffle=shuffle_flag,
+            generator=loader_generator,
             num_workers=args.num_workers,
             drop_last=drop_last)
         return data_set, data_loader
@@ -56,6 +66,7 @@ def data_provider(args, flag):
             data_set,
             batch_size=batch_size,
             shuffle=shuffle_flag,
+            generator=loader_generator,
             num_workers=args.num_workers,
             drop_last=drop_last,
             collate_fn=lambda x: collate_fn(x, max_len=args.seq_len)
@@ -81,6 +92,7 @@ def data_provider(args, flag):
             data_set,
             batch_size=batch_size,
             shuffle=shuffle_flag,
+            generator=loader_generator,
             num_workers=args.num_workers,
             drop_last=drop_last)
         return data_set, data_loader
