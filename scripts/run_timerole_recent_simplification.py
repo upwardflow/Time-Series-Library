@@ -296,6 +296,8 @@ def execute(
         )
         assert process.stdout is not None
         initial_rss = rss_bytes(process.pid)
+        resource_baseline_rss = initial_rss
+        resource_warmup_seconds = max(30, args.check_interval_seconds)
         selector = selectors.DefaultSelector()
         selector.register(process.stdout, selectors.EVENT_READ)
         try:
@@ -320,11 +322,18 @@ def execute(
 
                 elapsed = time.monotonic() - started
                 current_rss = rss_bytes(process.pid)
+                if current_rss and elapsed <= resource_warmup_seconds:
+                    resource_baseline_rss = max(resource_baseline_rss or 0, current_rss)
                 if (
-                    initial_rss and current_rss and current_rss > 3 * initial_rss
+                    elapsed > resource_warmup_seconds
+                    and resource_baseline_rss and current_rss
+                    and current_rss > 3 * resource_baseline_rss
                     and not resource_warned
                 ):
-                    message = f"[MONITOR RESOURCE_ALERT] rss={current_rss} initial={initial_rss}\n"
+                    message = (
+                        "[MONITOR RESOURCE_ALERT] "
+                        f"rss={current_rss} baseline={resource_baseline_rss}\n"
+                    )
                     print(message, end="", flush=True)
                     handle.write(message)
                     handle.flush()
@@ -369,6 +378,8 @@ def execute(
     monitor = {
         "pid": process.pid,
         "initial_rss_bytes": initial_rss,
+        "resource_baseline_rss_bytes": resource_baseline_rss,
+        "resource_warmup_seconds": resource_warmup_seconds,
         "duration_seconds": round(time.monotonic() - started, 3),
         "output_stall_advisory": stall_warned,
         "resource_alert": resource_warned,
