@@ -1,0 +1,110 @@
+% !TeX program = xelatex
+% cSpell:ignore Neurocomputing TimeRole addressline corref cortext ead
+\documentclass[final,5p,times,twocolumn,nopreprintline]{elsarticle}
+\biboptions{sort&compress}
+
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{calc}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage[hidelinks]{hyperref}
+
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmonofont{Latin Modern Mono}
+\setCJKmainfont[AutoFakeSlant=0.2]{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+
+% Compact A4 two-column layout matching the body style of published
+% Neurocomputing articles. Publisher mastheads and issue metadata are omitted.
+\setlength{\columnsep}{18pt}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{1em}
+\Urlmuskip=0mu plus 1mu\relax
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{9pt plus 2pt minus 2pt}
+\setlength{\intextsep}{9pt plus 2pt minus 2pt}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.90}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.80}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.80}
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{10pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+
+\graphicspath{{figures/}}
+\journal{Neurocomputing}
+
+% Commands emitted by Pandoc's LaTeX writer.
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\providecommand{\real}[1]{#1}
+% Table hierarchy follows the proportions used in the local Neurocomputing exemplars:
+% captions are one step below body text, compact single-column tables use 8 pt,
+% and the dense double-column benchmark table uses 7.5 pt.
+\newcommand{\tablecaptionfont}{\small}
+\newcommand{\tablebodyfont}{\fontsize{8}{9.2}\selectfont}
+\newcommand{\wideresulttablefont}{\fontsize{7.5}{8.5}\selectfont}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{TimeRole：面向多变量长期时间序列预测的历史职责分化建模\\[0.25em]
+\normalsize TimeRole: Role-Differentiated Historical Modeling for Multivariate Long-Term Time-Series Forecasting}
+
+% TODO: Replace all author and affiliation placeholders before submission.
+\author[aff1]{Author One\corref{cor1}}
+\ead{corresponding.author@example.com}
+\cortext[cor1]{Corresponding author}
+\affiliation[aff1]{organization={Department, University},
+                   addressline={Street address},
+                   city={City},
+                   postcode={Postcode},
+                   country={Country}}
+
+\begin{abstract}
+扩大回溯窗口能够为长期时间序列预测提供更多历史信息，但也会引入冗余观测、状态失配和额外计算。现有方法通常以统一编码流程处理全部历史，尚未充分建模近期状态与更早观测在预测中的异质作用。本文提出 TimeRole，一种近期---远期职责分化预测模型。其高分辨率近期路径采用图增强状态空间近期预测器（RGSP）联合编码当前时间动态和变量关系，并生成基础预测；低分辨率远期路径则由远期历史修正器（DHC）将更早历史压缩为条件修正表示。DHC 通过共享解码器比较加入历史前后的输出，并以有界通道系数将边际预测变化注入基础预测。在五个数据集、四个预测跨度的统一三随机种子比较中，TimeRole 分别取得12个最佳 MSE 和11个最佳 MAE，两项指标的平均排名为1.85和1.65。在 ETTm1 和 ETTm2 的配对对照中，TimeRole 相对仅含 RGSP 的 Recent96 取得24/24个种子级 MSE 与 MAE 胜场。成本分析进一步表明，TimeRole 以接近 Recent96 的资源开销利用更长历史，并大幅降低了直接长输入所需的参数量、推理延迟和显存。这些结果表明，按时间范围分配建模职责是兼顾长历史利用与计算效率的有效路径。
+\end{abstract}
+
+\begin{keyword}
+多变量时间序列预测 \sep 长期预测 \sep 长上下文 \sep
+历史压缩 \sep 非对称历史建模
+\end{keyword}
+
+\end{frontmatter}
+
+% The complete Chinese manuscript converted from ../TimeRole_中文主稿.md.
+\input{manuscript_zh}
+
+\section*{CRediT authorship contribution statement}
+% TODO: State each author's roles using the CRediT taxonomy.
+\textit{[待填写：按 CRediT 分类列出每位作者的贡献。]}
+
+\section*{Declaration of competing interest}
+% TODO: Insert the declaration approved by all authors.
+\textit{[待填写：经全体作者确认的利益冲突声明。]}
+
+\section*{Data availability}
+% TODO: Identify datasets, repositories, code links, and restrictions.
+\textit{[待填写：数据集、代码仓库、访问链接及可能的限制。]}
+
+\section*{Acknowledgments}
+% TODO: Add funding and acknowledgments, or remove this section.
+\textit{[待填写：基金信息和致谢；如无则删除本节。]}
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,678 @@
+\section{引言}
+
+多变量长期时间序列预测根据多通道历史观测估计较长预测区间内的未来变化，是能源调度、气象监测、交通管理和工业运维等系统的重要基础 \citep{Lim2021DeepForecastSurvey}。该任务不仅要求模型刻画单变量的时间演化，还需处理变量间依赖并在长预测跨度下维持精度。近年来，稀疏注意力、序列分解、patch 表示、变量 token 和多尺度建模形成了多样的长期预测器 \citep{Wen2023TransformerSurvey,Zhou2021Informer,Wu2021Autoformer,Nie2023PatchTST,Liu2024iTransformer,Wu2023TimesNet,Wang2024TimeMixer}。然而，在可用观测持续向更早时间延伸时，如何让模型从更长历史中获得稳定收益，仍是长期预测中的关键问题。
+
+延长回溯窗口能够引入长周期模式和缓慢状态迁移，但也会同时增加冗余、噪声、状态失配和计算负担。最大有效窗口（Maximum Effective Window，MEW）研究在其评估的 Transformer 类预测器中观察到，输入窗口超过一定范围后，继续增加历史并不必然改善性能，并据此通过信息过滤和选择性遗忘提高长历史利用率 \citep{Zhang2025MEW}。这一现象提示，长上下文预测不能只以“读取更多时间点”为目标：越接近预测起点的观测通常更直接地描述当前预测状态，而更早观测的价值更可能体现在对周期背景、历史状态或潜在偏差的补充。若所有时间范围均以相同分辨率进入同一高成本主干，额外历史的信息价值与处理成本便难以分别控制。
+
+现有研究已从多个角度利用历史异质性。层次插值、多尺度分支、信号分解和局部---全局建模分别组织不同频率、时间分辨率、信号成分或感受野，例如 NHITS、Pathformer、MICN、MCNet 和 AweHF \citep{Challu2023NHITS,Chen2024Pathformer,Wang2023MICN,Sun2024MCNet,Gong2026AweHF}；Attraos、PFRP 和 RAFT 则通过动力系统记忆或外部历史检索补充当前输入 \citep{Hu2024Attraos,Du2026PFRP,Han2025RAFT}。与此同时，DualNet、Multi-Granularity Residual Learning、xLSTM-Mixer 和 PIR 表明，基础预测之后的补偿、残差细化或实例修订也是有效的预测组织方式 \citep{Li2025DualNet,Hou2022MRLF,Kraus2025xLSTMMixer,Liu2025PIR}。这些路线已充分说明“多尺度”“双路径”或“基础预测加修正”本身并非新的设计命题。本文关注的是其中尚未被充分展开的连接：历史观测与预测起点的时间距离，能否直接决定其在预测过程中的职责，而不仅决定其尺度、检索方式或融合权重。
+
+为此，本文提出 TimeRole，一种面向多变量长期预测的历史职责分化模型。TimeRole 将输入划分为近期窗口和远期历史：近期窗口保留原始分辨率，由图增强状态空间近期预测器（RGSP）估计近期预测状态并生成完整基础预测；远期历史由远期历史修正器（DHC）进行低分辨率压缩，并在同一近期状态下通过共享解码器的配对输出差值形成边际修正，再由有界变量级系数注入基础预测。该结构把“模型可访问的历史范围”与“高成本主预测器直接处理的序列长度”分开控制。图学习和选择性状态空间建模在本文中用于实现 RGSP \citep{Huang2023CrossGNN,Wang2025SMamba,Karadag2026msMamba,Chen2026GMamba,Zhou2026SSMGNN}；TimeRole 的核心则是近期基础预测与远期条件修正之间的非对称预测职责。
+
+在五个公开数据集和四个预测跨度的统一比较中，TimeRole 的总体性能与近期强基线保持竞争力。进一步的三随机种子对照表明，在 ETTm1 和 ETTm2 的八个任务上，TimeRole 均降低了 Recent96 的平均测试 MSE；其中 Recent96 表示仅保留 RGSP、并仅输入最后96个时间点的实验对照。远期历史错配、打乱、反转及替代实验表明，性能增益依赖与当前样本匹配的远期内容。跨主干实验和资源测量进一步显示，DHC 可接入另一类近期窗口主干，并以接近短输入主干的资源预算利用更长历史。这些结果共同支持历史职责分化作为一种兼顾长历史利用与计算成本的预测组织方式。
+
+本文的贡献如下：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  提出 TimeRole 及其近期---远期历史职责分化方式，将高分辨率基础预测与低分辨率历史修正分离，使扩展可访问历史无需同步扩大 RGSP 的直接输入长度。
+\item
+  设计与 RGSP 功能互补的 DHC，以远期历史压缩、同一近期状态下的共享解码差值和有界变量级注入构成修正路径；该路径只表达加入远期历史后的边际输出变化，不重复承担完整预测任务。
+\item
+  通过统一基线比较、多随机种子对照、远期历史干预、跨主干迁移和资源测量评估 TimeRole。结果显示，该模型在本文实验设置下能够稳定利用样本匹配的远期历史，并在预测精度与计算成本之间取得有竞争力的平衡。
+\end{enumerate}
+
+\section{相关工作}
+
+\subsection{长期预测骨干与异质时间结构建模}
+
+长期预测骨干主要围绕长依赖表示、计算效率和直接多步输出展开 \citep{Lim2021DeepForecastSurvey,Wen2023TransformerSurvey}。除复杂深度主干外，DLinear 以趋势---季节分解后的线性映射建立了有竞争力的简单基线，NHITS 则通过多速率采样与层次插值逐级组装不同频率的预测分量 \citep{Zeng2023DLinear,Challu2023NHITS}。二者说明，长期预测性能不仅取决于主干容量，也取决于输入组织方式和预测分解策略。
+
+Transformer 路线从注意力效率、序列结构和变量交互三个方向演进。Informer 以 ProbSparse attention 降低长序列注意力开销，Autoformer 与 FEDformer 分别将自相关或频域增强同趋势---季节分解结合 \citep{Zhou2021Informer,Wu2021Autoformer,Zhou2022FEDformer}。PatchTST 把局部片段编码为 token；iTransformer 将整条变量序列作为 token；Crossformer 则以层次化的跨时间和跨变量注意力显式建模维度依赖 \citep{Nie2023PatchTST,Liu2024iTransformer,Zhang2023Crossformer}。这些工作改变了给定历史进入统一预测主干的表示方式，但通常不直接区分历史不同位置在最终输出中的预测职责。
+
+多尺度方法进一步利用同一序列在不同分辨率下的结构。TimesNet 将一维序列重排为多周期二维表示，TimeMixer 在多个采样尺度上分解并混合信息；Pathformer 以不同 patch 分辨率和自适应路径组织局部、全局依赖，MICN 则通过多尺度卷积分支分别提取局部特征和全局相关性 \citep{Wu2023TimesNet,Wang2024TimeMixer,Chen2024Pathformer,Wang2023MICN}。MPGTimer 联合多尺度 patch 与变量图，MPFGSN 进一步以多分辨率 hyperpatch graph 和频域图传播组织时空关系 \citep{Duan2026MPGTimer,Zheng2025MPFGSN}。这些模型主要回答“以哪些尺度或路径编码历史”，各尺度通常仍服务于同一完整预测目标。
+
+另一类方法按感受野或信号成分设置异质路径。MCNet 以局部分支处理近期片段和变量交互、以全局分支建模整段序列的长依赖；Wrinkles in Time 将季节项与趋势项分别交由多尺度二维 patch 和趋势超分辨率模块处理；AweHF 则自适应分解低频趋势与高频事件，并针对事件分量建模动态变量关系 \citep{Sun2024MCNet,Chen2026Wrinkles,Gong2026AweHF}。这些工作表明，不同尺度、感受野或信号成分可以采用不同表示路径。TimeRole 与其共享“差异化处理”的一般动机，但划分依据与输出约束不同：本文按观测距预测起点的时间位置分配非对称职责，使近期窗口承担完整预测、远期历史只提供条件修正。
+
+\subsection{图与状态空间多变量预测器}
+
+多变量预测还需刻画变量间依赖。Crossformer 通过跨维注意力显式连接时间片段与变量，TPGNN 以时间多项式图描述动态相关性，CrossGNN 通过跨尺度图与跨变量图处理异质交互，DiM 将差分---倒置嵌入与多头图学习结合 \citep{Zhang2023Crossformer,Liu2022TPGNN,Huang2023CrossGNN,Mo2026DiM}。这些方法说明，注意力或图结构能够补充纯时间编码器对变量关系的表达，但其重点是如何构造或传播变量依赖。
+
+状态空间模型为长序列提供了另一类近线性复杂度主干。Mamba 通过输入相关的选择性状态更新调节信息传播，S-Mamba 将双向 Mamba 用于多变量预测，ms-Mamba 则以不同采样率的多个 Mamba block 表达多时间尺度 \citep{Gu2024Mamba,Wang2025SMamba,Karadag2026msMamba}。G-Mamba 进一步把静态/动态图信息引入选择性状态更新，SSMGNN 则结合状态空间滤波与图谱算子 \citep{Chen2026GMamba,Zhou2026SSMGNN}。因此，多尺度或双向状态空间编码以及图---状态空间组合本身均已有明确先例。本文采用共享参数的双尺度 Mamba 与变量图传播形成 RGSP，但不将这一组合视为主要创新；其作用是为历史职责分化提供能够同时处理近期时间动态和变量关系的基础预测路径。
+
+\subsection{历史记忆、检索增强与预测修正}
+
+直接利用更长历史的研究主要关注历史选择、结构化记忆与外部检索。MEW 形式化最大有效窗口，并通过信息瓶颈过滤和选择性遗忘降低长输入中的冗余与干扰；Attraos 基于相空间重构构建多分辨率动态记忆，以历史动力结构辅助局部演化预测 \citep{Zhang2025MEW,Hu2024Attraos}。PFRP 在全局记忆库中检索相似历史以生成 global prediction，再与局部预测器组合；RAFT 则从训练集检索相似输入及其后续值，作为额外历史证据参与预测 \citep{Du2026PFRP,Han2025RAFT}。这些方法说明，历史信息的有效使用依赖筛选、记忆或匹配。TimeRole 不访问输入窗口之外的历史库，也不从远期历史生成与局部预测并列的 global prediction；它处理的是同一输入内部近期与远期观测的职责关系。
+
+预测修正研究从另一侧说明，完整预测不必由单一路径一次生成。DualNet 将主轨迹估计与局部残差补偿解耦，Multi-Granularity Residual Learning 利用不同粒度表示之间的残差细化预测，xLSTM-Mixer 以共享线性预测为基础并用 xLSTM 表示进一步 refinement \citep{Li2025DualNet,Hou2022MRLF,Kraus2025xLSTMMixer}。Stratify 从预测策略角度统一基础预测与残差 rectifier，PIR 则先识别可能偏置的预测实例，再利用协变量和局部/全局历史进行预测后修订 \citep{Green2025Stratify,Liu2025PIR}。与这些工作相比，TimeRole 的区别不在“基础预测加修正”的形式，而在修正信号的来源和约束：压缩远期历史只能通过同一近期状态下的配对解码差值改变近期基础预测，从而把历史位置与修正职责直接联系起来。该设计是端到端预测架构的一部分，不依赖预测后错误识别，也不把修正分支训练为独立完整预测器。
+
+\section{方法}
+
+\subsection{问题定义与历史职责划分}
+
+设 \(\mathbf{x}_{\tau}\in\mathbb{R}^{N}\) 为时刻 \(\tau\) 的 \(N\) 变量观测。给定截至时刻 \(t\) 的长度为 \(L\) 的历史窗口，多变量长期预测学习从历史观测到未来 \(H\) 步序列的映射：
+
+\begin{equation}
+\begin{aligned}
+\mathbf{X}_{t}
+&=[\mathbf{x}_{t-L+1},\ldots,\mathbf{x}_{t}]
+\in\mathbb{R}^{L\times N},\\
+\widehat{\mathbf{Y}}_{t}
+&=f_{\Theta}(\mathbf{X}_{t})
+\in\mathbb{R}^{H\times N}.
+\end{aligned}
+\label{eq:forecasting-task}
+\end{equation}
+
+TimeRole 根据历史观测距预测起点的远近，将 \(\mathbf{X}_{t}\) 划分为远期历史 \(\mathbf{X}^{d}_{t}\) 和近期窗口 \(\mathbf{X}^{r}_{t}\)。两段历史的时间边界明确写为
+
+\begin{equation}
+\begin{aligned}
+\mathbf{X}^{d}_{t}
+&=[\mathbf{x}_{t-L+1},\ldots,\mathbf{x}_{t-L_r}]
+\in\mathbb{R}^{L_d\times N},\\
+\mathbf{X}^{r}_{t}
+&=[\mathbf{x}_{t-L_r+1},\ldots,\mathbf{x}_{t}]
+\in\mathbb{R}^{L_r\times N},\\
+\mathbf{X}_{t}&=[\mathbf{X}^{d}_{t};\mathbf{X}^{r}_{t}],
+\qquad L=L_d+L_r.
+\end{aligned}
+\label{eq:history-partition}
+\end{equation}
+
+两段历史在模型中承担不同预测职责。近期窗口保持原始时间分辨率，由 RGSP 建模当前时间动态和变量关系，生成覆盖全部预测区间的基础预测；远期历史经过低分辨率压缩，由 DHC 结合近期状态估计条件修正。于是，\(L_r\) 决定高分辨率主预测器的时间建模预算，\(L_d\) 决定模型能够额外访问的历史范围。该划分将可访问的历史长度 \(L\) 与 RGSP 直接处理的序列长度 \(L_r\) 分离，使更早观测能够参与预测，而状态空间扫描和变量图传播仍集中在近期窗口。方法部分使用的主要符号汇总于表~\ref{tab:method-notation}。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{TimeRole 方法部分的主要符号。批量维在模块公式中按需省略。}
+\label{tab:method-notation}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}lll@{}}
+\toprule
+符号 & 维度或取值 & 含义 \\
+\midrule
+\(L,H,N\) & 标量 & 输入长度、预测长度、变量数 \\
+\(L_d,L_r\) & 标量 & 远期历史与近期窗口长度 \\
+\(\mathbf X_t^d\) & \(L_d\times N\) & 远期历史观测 \\
+\(\mathbf X_t^r\) & \(L_r\times N\) & 近期窗口观测 \\
+\(d,d_h\) & 标量 & RGSP 与 DHC 隐表示维度 \\
+\(J_s\) & 标量 & 尺度 \(s\) 的 patch 数量 \\
+\(r,K_m\) & 标量 & 池化宽度与记忆 token 数 \\
+\(\widehat{\mathbf Y}_t^b\) & \(H\times N\) & RGSP 基础预测 \\
+\(\Delta\mathbf Y_t\) & \(H\times N\) & DHC 条件修正 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{TimeRole 总体架构}
+
+图~\ref{fig:timerole-architecture} 给出了 TimeRole 的整体前向过程。完整前向传播包含四个阶段：首先按照式~\eqref{eq:history-partition} 划分历史范围；其次以近期窗口建立两段历史共享的数值参照；随后由 RGSP 输出完整基础预测，并由 DHC 在相同近期参照下计算远期历史引起的条件变化；最后将两个同形输出在预测空间逐元素相加。该流程可写为
+
+\begin{equation}
+\begin{aligned}
+\widehat{\mathbf{Y}}^{b}_{t}
+&=F_{\theta}(\mathbf{X}^{r}_{t}),\\
+\Delta\mathbf{Y}_{t}
+&=C_{\phi}(\widetilde{\mathbf{X}}^{r}_{t},
+\widetilde{\mathbf{X}}^{d}_{t}),\\
+\widehat{\mathbf{Y}}_{t}
+&=\widehat{\mathbf{Y}}^{b}_{t}+\Delta\mathbf{Y}_{t},
+\end{aligned}
+\label{eq:timerole-overview}
+\end{equation}
+
+其中，\(F_{\theta}\) 和 \(C_{\phi}\) 分别表示 RGSP 与 DHC，\(\theta\) 和 \(\phi\) 为对应参数；\(\widehat{\mathbf{Y}}^{b}_{t}\) 与 \(\Delta\mathbf{Y}_{t}\) 均属于 \(\mathbb R^{H\times N}\)。这一预测空间接口使 RGSP 可以独立完成全部 \(H\) 步预测，同时允许 DHC 只表达远期历史对该预测的增量影响。为了使远期观测能够在当前状态参照下参与修正，TimeRole 根据近期窗口计算每个变量的均值与标准差：
+
+\begin{equation}
+\mu_n=\frac{1}{L_r}\sum_{i=1}^{L_r}X^{r}_{i,n},\qquad
+\sigma_n=\sqrt{
+\frac{1}{L_r}\sum_{i=1}^{L_r}(X^{r}_{i,n}-\mu_n)^2+\epsilon}.
+\label{eq:recent-statistics}
+\end{equation}
+
+均值 \(\mu_n\) 与标准差 \(\sigma_n\) 在前向传播中停止梯度，并同时用于归一化近期窗口和远期历史：
+
+\begin{equation}
+\widetilde{\mathbf{X}}^{r}_{:,n}
+=\frac{\mathbf{X}^{r}_{:,n}-\mu_n}{\sigma_n},\qquad
+\widetilde{\mathbf{X}}^{d}_{:,n}
+=\frac{\mathbf{X}^{d}_{:,n}-\mu_n}{\sigma_n}.
+\label{eq:shared-normalization}
+\end{equation}
+
+近期统计量为两段历史提供同一局部坐标系：\(\widetilde{\mathbf{X}}^{r}\) 描述当前窗口内部的标准化变化，\(\widetilde{\mathbf{X}}^{d}\) 则保留更早观测相对于当前水平和尺度的偏移。该处理沿用了实例归一化缓解时间分布偏移的基本思想 \citep{Kim2022RevIN}，并使 DHC 的输出能够通过 \(\sigma_n\) 恢复到原始量纲。RGSP 和 DHC 不共享内部编码状态：前者从近期窗口生成基础预测，后者从同一近期输入及其统计参照构造条件修正。以下按实际前向顺序分别介绍两个模块及其联合优化方式。
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/Fig1_TimeRole_Architecture.pdf}
+\caption{TimeRole 的历史职责分化框架。\textbf{a} 总体流程将输入划分为远期历史 \(\mathbf{X}^{d}_{t}\) 与近期窗口 \(\mathbf{X}^{r}_{t}\)；图增强状态空间近期预测器（RGSP）生成基础预测 \(\widehat{\mathbf{Y}}^{b}_{t}\)，远期历史修正器（DHC）生成条件修正 \(\Delta\mathbf{Y}_{t}\)，二者相加得到最终预测 \(\widehat{\mathbf{Y}}_{t}\)。\textbf{b} RGSP 对近期窗口执行归一化和序列分解，在粗、细两个 patch 网格上分别进行参数共享的双向 Mamba 编码，并结合变量图传播重组季节与趋势输出。\textbf{c} DHC 使用近期统计量归一化并压缩远期历史，在相同近期状态下通过共享解码器计算加入历史前后的配对差值，再经有界变量系数得到条件修正。}
+\label{fig:timerole-architecture}
+\end{figure*}
+
+\subsection{图增强状态空间近期预测器（RGSP）}
+
+RGSP 将近期窗口映射为完整的基础预测。其前向过程依次包括序列分解、双尺度 patch 表示、双向状态空间编码、变量图传播和预测重建，如图~\ref{fig:timerole-architecture}b 所示。
+
+\subsubsection{近期分解与双尺度表示}
+
+近期窗口中的平滑演化与局部波动具有不同的时间形态。RGSP 首先采用移动平均将归一化近期序列分解为趋势项和季节项 \citep{Wu2021Autoformer,Zeng2023DLinear}：
+
+\begin{equation}
+\mathbf{T}^{r}=\operatorname{MA}(\widetilde{\mathbf{X}}^{r};w),\qquad
+\mathbf{S}^{r}=\widetilde{\mathbf{X}}^{r}-\mathbf{T}^{r},
+\label{eq:recent-decomposition}
+\end{equation}
+
+其中，\(w\) 为移动平均窗口。分解后的趋势路径直接保留近期窗口中的平滑演化，季节路径则集中表示相对于该平滑轨迹的局部变化。趋势项 \(\mathbf{T}^{r}\) 通过变量共享的线性层沿时间维投影到预测区间：
+
+\begin{equation}
+\widehat{\mathbf{Y}}^{\mathrm{tr}}_{:,n}
+=\mathbf{W}_{\mathrm{tr}}\mathbf{T}^{r}_{:,n}
++\mathbf{b}_{\mathrm{tr}},
+\qquad n=1,\ldots,N.
+\label{eq:trend-projection}
+\end{equation}
+
+为在同一近期窗口内表征不同粒度的局部变化，RGSP 在季节项 \(\mathbf{S}^{r}\) 上构造粗、细两个 patch 网格。对于尺度 \(s\in\{1,2\}\)，设 patch 长度为 \(p_s\)、步长为 \(q_s\)。在序列右端复制 \(q_s\) 个边界值后，该尺度得到
+
+\begin{equation}
+J_s=\left\lfloor\frac{L_r+q_s-p_s}{q_s}\right\rfloor+1
+\label{eq:patch-count}
+\end{equation}
+
+个 patch。记 \(\mathcal{I}^{(s)}_j\) 为第 \(j\) 个 patch 的时间索引，则变量 \(n\) 在该位置的 token 表示为
+
+\begin{equation}
+\mathbf{z}^{(s)}_{n,j}
+=\mathbf{W}^{(s)}_{p}\mathbf{S}^{r}_{\mathcal{I}^{(s)}_j,n}
++\mathbf{e}^{(s)}_{j}+\mathbf{v}_{n},
+\qquad
+\mathbf{z}^{(s)}_{n,j}\in\mathbb{R}^{d}.
+\label{eq:patch-token}
+\end{equation}
+
+其中，\(\mathbf{W}^{(s)}_{p}\) 为 patch 投影矩阵，\(\mathbf{e}^{(s)}_{j}\) 为正弦位置编码，\(\mathbf{v}_{n}\) 为跨尺度共享的变量嵌入。将全部变量和 patch 位置堆叠后，尺度 \(s\) 的初始 token 张量为
+
+\begin{equation}
+\mathbf Z^{(s,0)}
+=\operatorname{Stack}_{n,j}\!\left(\mathbf z^{(s)}_{n,j}\right)
+\in\mathbb R^{N\times d\times J_s}.
+\label{eq:scale-token-tensor}
+\end{equation}
+
+粗尺度采用较大的 \((p_s,q_s)\) 汇聚较宽时间范围，细尺度以更密集的 token 保留局部变化。两个网格覆盖同一近期窗口，而不是把窗口切成连续的两个子区间；因此，它们分别形成形状不同的 \(\mathbf Z^{(s,0)}\)，再调用同一组状态空间编码参数。具体 patch 设置在第4.1节给出。
+
+\subsubsection{参数共享的双向状态空间编码}
+
+状态空间分支沿每个变量的 patch 序列建模时间依赖。两个尺度共享同一组编码器参数，但分别执行完整的编码调用；尺度 \(1\) 的最终状态不会作为尺度 \(2\) 的初始状态。令 \(\mathbf{Z}^{(s,\ell)}\in\mathbb{R}^{N\times d\times J_s}\) 表示尺度 \(s\) 在第 \(\ell\) 层的输入，省略批量维和 dropout 后，双向 Mamba 层写为
+
+\begin{equation}
+\begin{aligned}
+\mathbf{Q}^{(s,\ell)}
+&=\mathbf{Z}^{(s,\ell)}
++\operatorname{Mamba}_{\rightarrow}
+\!\left(\operatorname{LN}(\mathbf{Z}^{(s,\ell)})\right)\\
+&\quad
++\operatorname{Rev}\!\left[
+\operatorname{Mamba}_{\leftarrow}
+\!\left(\operatorname{Rev}
+\!\left[\operatorname{LN}(\mathbf{Z}^{(s,\ell)})\right]\right)
+\right],
+\end{aligned}
+\label{eq:bidirectional-mamba}
+\end{equation}
+
+\begin{equation}
+\mathbf{Z}^{(s,\ell+1)}
+=\mathbf{Q}^{(s,\ell)}
++\operatorname{FFN}\!\left(\operatorname{LN}(\mathbf{Q}^{(s,\ell)})\right),
+\qquad
+\mathbf{U}^{(s)}=\operatorname{LN}(\mathbf{Z}^{(s,E)}),
+\label{eq:mamba-ffn}
+\end{equation}
+
+其中，\(\operatorname{Rev}(\cdot)\) 表示沿 patch 顺序翻转，\(E\) 为编码层数，\(\mathbf{U}^{(s)}\) 为尺度 \(s\) 的时间状态。正向扫描从早到晚传播局部演化信息，反向扫描从预测起点附近向前聚合上下文；两者在相同 patch 网格上形成方向互补的时间表示。跨尺度参数共享使两个时间粒度由同一状态转移机制编码，并避免为每个网格复制一套编码器参数；独立调用则保留各尺度自身的序列边界和 token 数量。
+
+\subsubsection{变量图传播与基础预测重建}
+
+时间状态 \(\mathbf{U}^{(s)}\) 描述各变量内部的动态，RGSP 进一步通过并行图分支聚合变量间依赖。训练先验图 \(\mathbf{A}^{\mathrm{st}}\) 由训练区间的距离相关性构造 \citep{Szekely2007DistanceCorrelation}：对每个变量保留相关性最高的 \(K_g\) 个邻居和自连接，并执行行归一化。与此同时，可学习节点嵌入 \(\mathbf{E}_{g}\) 生成全局学习图。两类关系组合为
+
+\begin{equation}
+\mathbf{A}^{\mathrm{lrn}}
+=\operatorname{softmax}(\mathbf{E}_{g}\mathbf{E}_{g}^{\mathsf T}),
+\qquad
+\mathbf{A}=\alpha\mathbf{A}^{\mathrm{st}}
++(1-\alpha)\mathbf{A}^{\mathrm{lrn}}.
+\label{eq:graph-adjacency}
+\end{equation}
+
+其中，\(\alpha\in[0,1]\) 控制训练先验关系与全局学习关系的比例。\(\mathbf A^{\mathrm{st}}\) 仅由训练区间构造并在训练、验证和测试阶段固定；\(\mathbf A^{\mathrm{lrn}}\) 随模型参数共同优化，但在样本和时间位置之间共享。二者分别提供数据相关的邻接先验和可学习的全局变量关系。在尺度 \(s\) 的第 \(j\) 个 patch 位置，令 \(\overline{\mathbf{Z}}^{(s)}_{j}\in\mathbb{R}^{N\times d}\) 表示式~\eqref{eq:patch-token} 形成的全部变量 token，图传播计算为
+
+\begin{equation}
+\mathbf{G}^{(s)}_{j}
+=\operatorname{GELU}
+\!\left(\mathbf{A}\overline{\mathbf{Z}}^{(s)}_{j}\mathbf{W}_{\mathrm{in}}\right)
+\mathbf{W}_{\mathrm{out}},
+\qquad
+\mathbf{H}^{(s)}_{j}=\mathbf{U}^{(s)}_{j}+\mathbf{G}^{(s)}_{j}.
+\label{eq:graph-propagation}
+\end{equation}
+
+其中，\(\mathbf{W}_{\mathrm{in}}\) 与 \(\mathbf{W}_{\mathrm{out}}\) 为特征投影矩阵，式中省略偏置和 dropout；\(\mathbf{G}^{(s)}\) 为变量图状态，\(\mathbf{H}^{(s)}\) 为时间状态与图状态的融合表示。图分支在每个 patch 位置沿变量轴传播，而状态空间分支沿每个变量的 patch 轴传播；两条轴向数据流在 \(\mathbf H^{(s)}\) 中汇合，使每个 token 同时包含变量内部的时间演化和同一位置上的跨变量信息。
+
+最后，RGSP 沿 patch 维连接两个尺度的融合状态，并在每个变量内展平，通过预测头生成季节项：
+
+\begin{equation}
+\widehat{\mathbf{Y}}^{\mathrm{se}}
+=\operatorname{Head}
+\!\left(\mathbf{H}^{(1)}\mathbin{\Vert}_{p}\mathbf{H}^{(2)}\right),
+\label{eq:seasonal-head}
+\end{equation}
+
+其中，\(\Vert_p\) 表示沿 patch 维连接。对每个变量而言，连接后的表示包含 \(d(J_1+J_2)\) 个特征，预测头将其一次映射为 \(H\) 个季节预测值。因此，各变量共享同一输出映射形式，但保留各自的时间---图表示。季节预测与式~\eqref{eq:trend-projection} 的趋势预测相加，并利用式~\eqref{eq:recent-statistics} 的统计量恢复到原始尺度：
+
+\begin{equation}
+\begin{aligned}
+\widehat{\mathbf{Y}}^{b,\mathrm{norm}}
+&=\widehat{\mathbf{Y}}^{\mathrm{se}}
++\widehat{\mathbf{Y}}^{\mathrm{tr}},
+\\
+\widehat{\mathbf{Y}}^{b}_{:,n}
+&=\sigma_n\widehat{\mathbf{Y}}^{b,\mathrm{norm}}_{:,n}+\mu_n.
+\end{aligned}
+\label{eq:base-forecast}
+\end{equation}
+
+式~\eqref{eq:base-forecast} 给出的 \(\widehat{\mathbf{Y}}^{b}\) 覆盖全部 \(H\) 个预测步，是 TimeRole 的近期窗口基础预测。
+
+\subsection{远期历史修正器（DHC）}
+
+DHC 将远期历史转化为近期状态条件下的预测修正。其核心过程包含历史压缩、状态投影、配对解码和变量级注入，如图~\ref{fig:timerole-architecture}c 所示。该模块沿变量维并行执行，不再引入状态空间扫描或图传播；同一组投影与解码参数应用于所有变量，而变量级系数负责调节最终注入强度。
+
+\subsubsection{历史压缩与条件状态}
+
+远期历史包含跨越较长时间范围的背景变化。DHC 采用宽度和步长均为 \(r\) 的不重叠平均池化，将每个变量的 \(L_d\) 个远期观测压缩为 \(K_m\) 个记忆 token：
+
+\begin{equation}
+\begin{aligned}
+M_{n,k}
+&=\frac{1}{r}\sum_{i=(k-1)r+1}^{kr}\widetilde X^d_{i,n},
+\qquad k=1,\ldots,K_m,\\
+\mathbf{M}
+&=\operatorname{AvgPool}
+\!\left((\widetilde{\mathbf{X}}^{d})^{\mathsf T};r\right)
+\in\mathbb{R}^{N\times K_m},
+\qquad K_m=\frac{L_d}{r}.
+\end{aligned}
+\label{eq:history-pooling}
+\end{equation}
+
+其中，\(r\) 整除 \(L_d\)。每个记忆 token 汇总一段连续且互不重叠的远期观测，因而按原始时间顺序形成低分辨率历史轨迹，并将后续投影长度从 \(L_d\) 降至 \(K_m\)。对于变量 \(n\)，DHC 分别将近期窗口与压缩历史投影到 \(d_h\) 维条件空间：
+
+\begin{equation}
+\mathbf{h}^{r}_{n}=\mathbf{W}_{r}\widetilde{\mathbf{x}}^{r}_{n},
+\qquad
+\mathbf{h}^{m}_{n}=\mathbf{W}_{m}\mathbf{m}_{n}.
+\label{eq:dhc-states}
+\end{equation}
+
+其中，\(\widetilde{\mathbf{x}}^{r}_{n}\in\mathbb{R}^{L_r}\) 和 \(\mathbf{m}_{n}\in\mathbb{R}^{K_m}\) 分别是近期窗口与压缩历史中变量 \(n\) 的向量，\(\mathbf{W}_{r}\in\mathbb{R}^{d_h\times L_r}\)，\(\mathbf{W}_{m}\in\mathbb{R}^{d_h\times K_m}\)。两个无偏置线性映射把不同长度的时间向量对齐到同一条件空间：\(\mathbf{h}^{r}_{n}\) 表示当前预测状态，\(\mathbf{h}^{m}_{n}\) 表示与其同变量对应的远期历史条件。二者可直接相加，从而在不改变输出维度的情况下把远期信息置于当前状态条件下。
+
+\subsubsection{配对解码与变量级修正}
+
+在条件空间中，DHC 通过一组配对输出刻画远期历史带来的预测变化。定义无偏置共享解码器 \(D(\mathbf z)=\mathbf W_d\operatorname{GELU}(\mathbf z)\)，其中 \(\mathbf{W}_{d}\in\mathbb{R}^{H\times d_h}\)。对于同一近期状态，解码器分别计算近期状态输出和历史条件输出：
+
+\begin{equation}
+\begin{aligned}
+\mathbf{y}^{-m}_{n}
+&=D(\mathbf{h}^{r}_{n}),\qquad
+\mathbf{y}^{+m}_{n}=D(\mathbf{h}^{r}_{n}+\mathbf{h}^{m}_{n}),
+\\
+\boldsymbol{\delta}_{n}
+&=\mathbf{y}^{+m}_{n}-\mathbf{y}^{-m}_{n}\\
+&=\mathbf W_d\!\left[
+\operatorname{GELU}(\mathbf h_n^r+\mathbf h_n^m)
+-\operatorname{GELU}(\mathbf h_n^r)
+\right].
+\end{aligned}
+\label{eq:paired-decoding}
+\end{equation}
+
+差值 \(\boldsymbol{\delta}_{n}\in\mathbb{R}^{H}\) 直接表示在近期状态 \(\mathbf{h}^{r}_{n}\) 下加入远期条件 \(\mathbf{h}^{m}_{n}\) 后产生的预测变化。两次解码使用完全相同的 \(\mathbf W_d\)，区别只来自是否加入远期状态，因此差值对应条件变化，而不是两个独立预测器之间的输出差异。共享解码器也使两次输出自然位于同一预测空间，为后续逐步修正提供一致接口。
+
+不同变量对远期历史的响应强度可能不同。为此，DHC 为每个变量设置可学习标量 \(a_n\)，并以双曲正切得到变量级注入系数 \(g_n\)：
+
+\begin{equation}
+g_n=\tanh(a_n)\in(-1,1),\qquad
+\Delta\mathbf{Y}_{:,n}
+=g_n\sigma_n\boldsymbol{\delta}_{n}.
+\label{eq:bounded-correction}
+\end{equation}
+
+系数 \(g_n\) 在所有样本和预测步之间共享，用于学习变量 \(n\) 的修正方向与相对强度；正值保留差值方向，负值允许反向调整，其绝对值控制注入比例。\(\sigma_n\) 将标准化空间中的输出变化恢复到原始量纲。结合式~\eqref{eq:base-forecast}，TimeRole 的最终预测为
+
+\begin{equation}
+\widehat{\mathbf{Y}}_{:,n}
+=\widehat{\mathbf{Y}}^{b}_{:,n}
++g_n\sigma_n\!\left[
+D(\mathbf{h}^{r}_{n}+\mathbf{h}^{m}_{n})
+-D(\mathbf{h}^{r}_{n})
+\right].
+\label{eq:timerole-output}
+\end{equation}
+
+式~\eqref{eq:timerole-output} 将 RGSP 的基础预测与 DHC 的远期历史条件修正统一在同一输出空间中，构成 TimeRole 的完整预测映射。
+
+\subsection{联合优化与计算开销}
+
+RGSP 与 DHC 采用端到端方式联合训练。最终输出上的预测误差同时更新近期基础预测路径和远期条件修正路径，无需为两条路径设置独立监督。给定批量大小 \(B\)，优化目标为预测序列与真实序列之间的均方误差：
+
+\begin{equation}
+\mathcal{L}_{\mathrm{MSE}}
+=\frac{1}{BHN}
+\sum_{b=1}^{B}\sum_{h=1}^{H}\sum_{n=1}^{N}
+(\widehat{Y}_{b,h,n}-Y_{b,h,n})^2.
+\label{eq:training-objective}
+\end{equation}
+
+DHC 引入的参数包括近期状态投影 \(\mathbf W_r\)、历史状态投影 \(\mathbf W_m\)、共享解码器 \(\mathbf W_d\) 和 \(N\) 个变量级系数。因此，相对于 Recent96，其新增参数量为
+
+\begin{equation}
+P_{\mathrm{DHC}}=d_h(L_r+K_m+H)+N.
+\label{eq:dhc-parameters}
+\end{equation}
+
+对应的增量计算复杂度为
+
+\begin{equation}
+\mathcal{O}\!\left(BNL_d+BNd_h(L_r+K_m+2H)\right).
+\label{eq:dhc-complexity}
+\end{equation}
+
+式~\eqref{eq:dhc-complexity} 中，\(BNL_d\) 对应全部变量上的远期历史池化；\(BNd_hL_r\) 与 \(BNd_hK_m\) 分别来自近期状态和记忆状态投影；\(2BNd_hH\) 对应配对解码的两次输出映射。由于 \(K_m=L_d/r\)，远期投影使用的是压缩后的记忆长度，而 RGSP 的 patch 化、状态空间扫描与图传播长度始终由 \(L_r\) 决定。因而，当历史覆盖范围 \(L_d\) 增大时，主要新增量来自线性池化及按 \(L_d/r\) 增长的记忆投影，而无需同步扩展近期主干。该分析给出的是相对 Recent96 的增量成本，完整模型的实测参数量、延迟与显存见第4.5节。
+
+\section{实验}
+
+本章从预测性能、贡献归因与计算代价三个层面评估 TimeRole。首先，在统一的长输入协议下，将 TimeRole 与七类代表性预测模型进行比较，以考察其在不同数据频率和预测跨度上的总体竞争力。随后，通过 Recent96 严格对照、内部设计变体和冻结检查点上的历史干预，分析远期历史修正带来的收益及其信息来源。最后，将 DHC 接入 TimeXer，并与直接扩展近期主干的 Raw336 比较，从跨主干迁移和资源开销两个角度评价近期---远期职责分化的适用性。除特别说明外，所有检查点均由验证集 MSE 选择，测试集仅用于最终结果报告。
+
+\subsection{实验设置}
+
+\subsubsection{数据集与评价指标}
+
+实验选用 ETTh1、ETTh2、ETTm1、ETTm2 和 Weather 五个多变量长期预测基准 \citep{Zhou2021Informer,Wu2021Autoformer}，数据统计见表~\ref{tab:datasets}。四个 ETT 子集记录电力变压器负载及油温相关变量，分别以1小时或15分钟为采样间隔；Weather 包含21个气象变量，采样间隔为10分钟。这些数据在时间分辨率、序列长度和变量规模上的差异，为检验模型在不同序列结构下的表现提供了互补场景。所有任务均采用多变量输入---多变量输出设置，并以均方误差（MSE）和平均绝对误差（MAE）评价预测精度，二者均为越低越好。
+
+所有模型的输入长度统一设为336，预测长度为 \(H\in\{96,192,336,720\}\)。TimeRole 将336点历史划分为最后96点近期窗口和此前240点远期历史：RGSP 在近期窗口上生成基础预测，DHC 从压缩后的远期历史中计算条件修正。ETT 数据沿用公开基准的时间顺序划分，Weather 按7:1:2划分训练集、验证集和测试集。因此，各模型在同一任务中获得相同长度的历史输入，不同预测跨度之间也保持一致的数据处理流程。
+
+\begin{table}[t]
+\tablecaptionfont
+\caption{数据集统计。数据点数不含表头；变量数不含时间戳列。}
+\label{tab:datasets}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}lrrll@{}}
+\toprule\noalign{}
+数据集 & 变量数 & 数据点数 & 采样频率 & 数据划分 \\
+\midrule\noalign{}
+ETTh1 & 7 & 17,420 & 1小时 & 官方 ETT 划分 \\
+ETTh2 & 7 & 17,420 & 1小时 & 官方 ETT 划分 \\
+ETTm1 & 7 & 69,680 & 15分钟 & 官方 ETT 划分 \\
+ETTm2 & 7 & 69,680 & 15分钟 & 官方 ETT 划分 \\
+Weather & 21 & 52,696 & 10分钟 & 7:1:2 \\
+\bottomrule\noalign{}
+\end{tabular}
+\end{table}
+
+\subsubsection{对比方法与评估协议}
+
+主比较包含 DLinear、PatchTST、iTransformer、TimeMixer、TimesNet、S-Mamba 和 MSGNet \citep{Zeng2023DLinear,Nie2023PatchTST,Liu2024iTransformer,Wang2024TimeMixer,Wu2023TimesNet,Wang2025SMamba,Cai2024MSGNet}。这些方法分别代表线性映射、patch Transformer、倒置 Transformer、多尺度混合、二维时序变化、双向状态空间模型和多尺度变量图等主要技术路线。其中，S-Mamba 提供状态空间建模参照，MSGNet 提供显式变量关系建模参照，DLinear 则用于衡量简单线性模型在标准基准上的竞争力。
+
+主比较（表~\ref{tab:main-results}）以及核心对照（表~\ref{tab:recent96-comparison}--\ref{tab:design-choices}）使用相同的数据划分、输入长度、评价脚本和验证集选点规则，并在随机种子 \(\{2021,2022,2023\}\) 下独立运行。表中报告三次测试结果的均值，核心对照同时给出样本标准差。历史干预、跨主干迁移和资源测量基于 seed 2021 的已选检查点，用于补充输入依赖性、可迁移性与效率证据。TimeMixer 的学习率由验证集确定：ETTm2 和 Weather 使用 \(10^{-4}\)，其余数据集使用 \(10^{-2}\)。该模型在 ETTm1-96 和 ETTm1-720 的 seed 2023 运行中发生数值发散，因此对应单元不参与排名。
+
+\subsubsection{实现细节}
+
+TimeRole 的表示维度设为 \(d_{\mathrm{model}}=64\)，前馈维度为128，RGSP 包含1个双向 Mamba 编码层，状态维度和卷积宽度分别为32和2。两组 patch 的长度/步长分别为4/2和2/1，其 token 依次通过参数共享的 Mamba 编码器，并在尺度切换时重置扫描状态。静态图由训练区间均匀抽取的2000个时间点估计距离相关性，每个变量保留2个邻居，再以0.5的融合系数与学习图结合。DHC 使用长度16的不重叠平均池化和32维隐状态，变量级修正系数的未约束参数初始化为0。
+
+训练采用 Adam 优化器，初始学习率为 \(5\times10^{-4}\)，批量大小为32，dropout 为0.1，最多训练100轮；若验证集 MSE 连续6轮未改善，则提前停止训练。实验在 PyTorch 2.5.1、CUDA 12.1 和单张 NVIDIA GeForce RTX 4090 上完成，验证集 MSE 最低的检查点用于最终测试。
+
+\subsection{总体预测性能}
+
+表~\ref{tab:main-results} 给出了五个数据集和四个预测跨度上的测试结果。总体上，TimeRole 在20个任务中取得12个最佳 MSE 和11个最佳 MAE，并分别获得3个和7个次优结果；其 MSE 与 MAE 的任务级平均排名分别为1.85和1.65。该排名分布表明，TimeRole 的优势同时体现在平方误差和绝对误差上，而不是由少数任务上的单项结果主导。
+
+从数据集分布看，TimeRole 在 Weather 的四个预测跨度上均取得最低 MSE 和 MAE，并在 ETTh2 的96--336步预测中保持领先。在 ETTm1 上，TimeRole 的 MSE 在96、192和336步均为最低，720步也保持次优；在 ETTh1 上则分别取得96步和720步的最佳结果。上述表现覆盖小时级、15分钟级和10分钟级序列，说明该模型在不同采样频率下均能保持较好的预测精度。
+
+TimeRole 的优势主要体现为跨任务的均衡竞争力，而非所有单元格上的绝对领先。与各任务中最优的有效基线相比，其20任务宏平均 MSE 高0.234\%，宏平均 MAE 低0.059\%。DLinear 在 ETTh1-192/336 和部分 ETTm1、ETTm2 任务上表现更好，S-Mamba 在 ETTh2-720 上取得最低误差，TimeMixer 则在 ETTm2 的较长预测跨度上占优。综合最佳/次优数量、平均排名和宏平均差异，TimeRole 在统一336点输入协议下取得了有竞争力且较为稳定的总体结果。下文进一步检验其中能够归因于远期历史修正的部分。
+
+\begin{table*}[!t]
+\begingroup
+\tablecaptionfont
+\caption{五数据集统一协议下的三随机种子测试结果（均值，越低越好）。本文模型置于第一组，每个方法分别报告 MSE 与 MAE；最佳结果以粗体表示，次优结果以下划线表示。排名依据未舍入均值计算，显示值统一保留三位小数。为保持汇总表的可读性，本表不重复列出标准差；三随机种子的离散程度在核心对照表中报告。“数值发散（1/3）”对应的指标以“--”表示且不参与排名。}
+\label{tab:main-results}
+\centering
+\wideresulttablefont
+\setlength{\tabcolsep}{0.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}ll*{16}{c}@{}}
+\toprule
+\multirow{2}{*}{数据集} & \multirow{2}{*}{\(H\)} & \multicolumn{2}{c}{TimeRole（本文）} & \multicolumn{2}{c}{DLinear} & \multicolumn{2}{c}{PatchTST} & \multicolumn{2}{c}{iTransformer} & \multicolumn{2}{c}{TimeMixer} & \multicolumn{2}{c}{TimesNet} & \multicolumn{2}{c}{S-Mamba} & \multicolumn{2}{c}{MSGNet} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}\cmidrule(lr){9-10}\cmidrule(lr){11-12}\cmidrule(lr){13-14}\cmidrule(lr){15-16}\cmidrule(lr){17-18}
+& & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE & MSE & MAE \\
+\midrule
+ETTh1 & 96 & \textbf{0.369} & \textbf{0.398} & \underline{0.375} & \underline{0.399} & 0.399 & 0.420 & 0.399 & 0.417 & 0.389 & 0.408 & 0.437 & 0.450 & 0.397 & 0.417 & 0.422 & 0.441 \\
+ & 192 & \underline{0.415} & \underline{0.426} & \textbf{0.408} & \textbf{0.419} & 0.462 & 0.461 & 0.442 & 0.446 & 0.437 & 0.438 & 0.466 & 0.468 & 0.434 & 0.441 & 0.455 & 0.465 \\
+ & 336 & \underline{0.449} & \textbf{0.443} & \textbf{0.439} & \underline{0.445} & 0.528 & 0.503 & 0.464 & 0.462 & 0.474 & 0.466 & 0.519 & 0.502 & 0.452 & 0.455 & 0.481 & 0.479 \\
+ & 720 & \textbf{0.454} & \textbf{0.458} & \underline{0.471} & \underline{0.492} & 0.657 & 0.571 & 0.506 & 0.507 & 0.726 & 0.593 & 0.589 & 0.537 & 0.511 & 0.509 & 0.524 & 0.515 \\
+ETTh2 & 96 & \textbf{0.283} & \textbf{0.343} & 0.303 & 0.367 & 0.323 & 0.372 & 0.302 & 0.359 & \underline{0.283} & \underline{0.348} & 0.363 & 0.414 & 0.301 & 0.358 & 0.369 & 0.414 \\
+ & 192 & \textbf{0.344} & \textbf{0.387} & 0.397 & 0.429 & 0.389 & 0.421 & 0.388 & 0.410 & \underline{0.361} & 0.400 & 0.407 & 0.439 & 0.366 & \underline{0.398} & 0.398 & 0.429 \\
+ & 336 & \textbf{0.375} & \textbf{0.413} & 0.482 & 0.482 & 0.428 & 0.444 & 0.420 & 0.434 & \underline{0.383} & \underline{0.416} & 0.407 & 0.443 & 0.394 & 0.420 & 0.400 & 0.437 \\
+ & 720 & 0.449 & 0.462 & 0.751 & 0.615 & 0.463 & 0.475 & \underline{0.424} & \underline{0.447} & 0.425 & 0.451 & 0.426 & 0.456 & \textbf{0.418} & \textbf{0.445} & 0.444 & 0.464 \\
+ETTm1 & 96 & \textbf{0.298} & \underline{0.352} & \underline{0.300} & \textbf{0.344} & 0.317 & 0.366 & 0.305 & 0.358 & -- & -- & 0.324 & 0.370 & 0.301 & 0.356 & 0.309 & 0.363 \\
+ & 192 & \textbf{0.333} & \underline{0.374} & \underline{0.334} & \textbf{0.364} & 0.352 & 0.386 & 0.344 & 0.382 & 0.339 & 0.375 & 0.382 & 0.399 & 0.344 & 0.383 & 0.356 & 0.393 \\
+ & 336 & \textbf{0.368} & \underline{0.395} & \underline{0.370} & \textbf{0.387} & 0.395 & 0.418 & 0.380 & 0.403 & 0.405 & 0.415 & 0.401 & 0.414 & 0.378 & 0.403 & 0.389 & 0.412 \\
+ & 720 & \underline{0.429} & \underline{0.429} & \textbf{0.426} & \textbf{0.422} & 0.451 & 0.452 & 0.440 & 0.437 & -- & -- & 0.478 & 0.459 & 0.436 & 0.437 & 0.444 & 0.448 \\
+ETTm2 & 96 & 0.176 & 0.264 & \textbf{0.167} & \textbf{0.262} & 0.182 & 0.272 & 0.175 & 0.266 & \underline{0.173} & \underline{0.262} & 0.197 & 0.279 & 0.179 & 0.270 & 0.188 & 0.273 \\
+ & 192 & 0.231 & \textbf{0.300} & \textbf{0.229} & 0.309 & 0.236 & 0.309 & 0.243 & 0.312 & \underline{0.230} & \underline{0.301} & 0.240 & 0.311 & 0.237 & 0.310 & 0.242 & 0.311 \\
+ & 336 & 0.285 & \underline{0.336} & 0.302 & 0.363 & 0.308 & 0.357 & 0.299 & 0.348 & \textbf{0.280} & \textbf{0.335} & 0.302 & 0.351 & \underline{0.284} & 0.339 & 0.302 & 0.349 \\
+ & 720 & 0.376 & \underline{0.392} & 0.421 & 0.439 & 0.395 & 0.408 & 0.377 & 0.395 & \textbf{0.364} & \textbf{0.387} & 0.436 & 0.421 & \underline{0.375} & 0.394 & 0.402 & 0.406 \\
+Weather & 96 & \textbf{0.146} & \textbf{0.197} & 0.175 & 0.237 & 0.156 & 0.206 & 0.163 & 0.212 & \underline{0.148} & \underline{0.198} & 0.166 & 0.225 & 0.157 & 0.206 & 0.162 & 0.218 \\
+ & 192 & \textbf{0.188} & \textbf{0.237} & 0.216 & 0.274 & 0.201 & 0.247 & 0.205 & 0.250 & \underline{0.192} & \underline{0.241} & 0.215 & 0.266 & 0.204 & 0.252 & 0.211 & 0.260 \\
+ & 336 & \textbf{0.242} & \textbf{0.278} & 0.262 & 0.314 & 0.257 & 0.290 & 0.257 & 0.290 & \underline{0.242} & \underline{0.281} & 0.272 & 0.307 & 0.256 & 0.288 & 0.261 & 0.294 \\
+ & 720 & \textbf{0.318} & \textbf{0.332} & 0.326 & 0.366 & 0.330 & 0.340 & 0.331 & 0.340 & \underline{0.319} & \underline{0.333} & 0.348 & 0.355 & 0.326 & 0.339 & 0.370 & 0.362 \\
+\bottomrule
+\end{tabular*}
+\endgroup
+\end{table*}
+
+\subsection{远期历史修正的有效性}
+
+\subsubsection{与近期预测器的严格对照}
+
+为隔离远期历史修正的贡献，表~\ref{tab:recent96-comparison} 将 TimeRole 与其近期预测器 Recent96 进行配对比较。两者采用相同的 RGSP、优化设置和最后96点近期输入；TimeRole 仅额外使用 DHC 处理此前240点历史。因而，该对照保持近期预测路径不变，将性能差异集中于远期历史分支。
+
+在 ETTm1 和 ETTm2 的八个任务上，TimeRole 均同时降低了平均 MSE 与 MAE。相对 Recent96，MSE 改善范围为6.884\%--12.824\%，MAE 改善范围为2.824\%--5.203\%；任务级宏平均改善分别为8.828\%和4.162\%。三次独立运行形成的24组逐种子配对中，TimeRole 的两项指标均为24/24胜。改善覆盖96、192、336和720四种预测长度，说明 DHC 提供的远期修正不仅作用于最长预测任务，也能改善较短跨度下的基础预测。
+
+这一严格对照将主结果中的总体竞争力进一步归因到远期历史分支：在近期预测器及其训练设置保持一致时，引入压缩远期历史能够持续降低预测误差。随后对内部结构的比较用于判断这种收益是否依赖特定的条件化与修正形式。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{TimeRole 与 Recent96 的三随机种子测试结果（均值±样本标准差，越低越好）。本文模型置于首位；最佳结果以粗体表示，次优结果以下划线表示。排名依据未舍入均值计算，显示值统一保留三位小数。}
+\label{tab:recent96-comparison}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{1.2pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrrc@{}}
+\toprule\noalign{}
+数据集 & \(H\) & 方法 & MSE & MAE & 改善（MSE/MAE） \\
+\midrule\noalign{}
+ETTm1 & 96 & TimeRole（本文） & \textbf{0.298±0.003} & \textbf{0.352±0.003} & 10.466\% / 5.203\% \\
+& & Recent96 & \underline{0.333±0.003} & \underline{0.371±0.003} & -- \\
+& 192 & TimeRole（本文） & \textbf{0.333±0.001} & \textbf{0.374±0.001} & 10.165\% / 4.934\% \\
+& & Recent96 & \underline{0.371±0.004} & \underline{0.393±0.002} & -- \\
+& 336 & TimeRole（本文） & \textbf{0.368±0.002} & \textbf{0.395±0.001} & 7.280\% / 4.399\% \\
+& & Recent96 & \underline{0.397±0.006} & \underline{0.413±0.003} & -- \\
+& 720 & TimeRole（本文） & \textbf{0.429±0.004} & \textbf{0.429±0.002} & 6.884\% / 4.551\% \\
+& & Recent96 & \underline{0.460±0.003} & \underline{0.449±0.002} & -- \\
+\midrule
+ETTm2 & 96 & TimeRole（本文） & \textbf{0.176±0.004} & \textbf{0.264±0.003} & 8.074\% / 2.824\% \\
+& & Recent96 & \underline{0.191±0.010} & \underline{0.272±0.007} & -- \\
+& 192 & TimeRole（本文） & \textbf{0.231±0.009} & \textbf{0.300±0.008} & 12.824\% / 4.415\% \\
+& & Recent96 & \underline{0.265±0.035} & \underline{0.314±0.018} & -- \\
+& 336 & TimeRole（本文） & \textbf{0.285±0.005} & \textbf{0.336±0.005} & 7.063\% / 2.915\% \\
+& & Recent96 & \underline{0.307±0.003} & \underline{0.346±0.003} & -- \\
+& 720 & TimeRole（本文） & \textbf{0.375±0.001} & \textbf{0.392±0.003} & 8.701\% / 4.203\% \\
+& & Recent96 & \underline{0.411±0.009} & \underline{0.409±0.007} & -- \\
+\bottomrule\noalign{}
+\end{tabular*}
+\end{table}
+
+\subsubsection{设计选择分析}
+
+表~\ref{tab:design-choices} 比较完整 TimeRole 与三种内部变体，以分析远期信息的条件化方式。Concat 直接拼接近期状态与远期记忆后输出预测，用于比较配对解码与直接融合；NoDiff 移除两路解码结果的差分；GlobalGate 将变量级修正系数替换为跨变量共享的全局系数。实验覆盖 ETTm1、ETTm2 的96步和720步任务，并在三个随机种子下重复运行。
+
+完整 TimeRole 在 ETTm1-96 和 ETTm1-720 上同时取得最低 MSE 与 MAE，并在 ETTm2-720 上取得最低 MAE。相较之下，NoDiff 在 ETTm2-96 上取得最低 MSE，GlobalGate 在 ETTm2-720 上取得最低 MSE，且其优势均集中于单个指标。按逐种子配对统计，TimeRole 相对 Concat、NoDiff 和 GlobalGate 的 MSE 胜场分别为9/12、9/12和7/12，对应宏平均改善为0.743\%、0.912\%和0.189\%。这些结果表明，不同条件化形式之间的差距小于 TimeRole 相对 Recent96 的整体增益，但配对差分和变量级修正在四个端点任务上形成了更均衡的 MSE/MAE 组合。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{TimeRole 内部设计的三随机种子测试结果（均值±样本标准差，越低越好）。本文模型置于首位；最佳结果以粗体表示，次优结果以下划线表示。排名依据未舍入均值计算，显示值统一保留三位小数。}
+\label{tab:design-choices}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrr@{}}
+\toprule\noalign{}
+数据集 & \(H\) & 方法 & MSE & MAE \\
+\midrule\noalign{}
+ETTm1 & 96 & TimeRole（本文） & \textbf{0.298±0.003} & \textbf{0.352±0.003} \\
+& & Recent96 & 0.333±0.003 & 0.371±0.003 \\
+& & Concat & 0.303±0.004 & 0.354±0.001 \\
+& & NoDiff & 0.307±0.004 & 0.356±0.001 \\
+& & GlobalGate & \underline{0.300±0.003} & \underline{0.353±0.002} \\
+\addlinespace[1pt]
+& 720 & TimeRole（本文） & \textbf{0.429±0.004} & \textbf{0.429±0.002} \\
+& & Recent96 & 0.460±0.003 & 0.449±0.002 \\
+& & Concat & 0.434±0.002 & \underline{0.430±0.001} \\
+& & NoDiff & 0.433±0.002 & 0.430±0.001 \\
+& & GlobalGate & \underline{0.432±0.003} & 0.431±0.001 \\
+\midrule
+ETTm2 & 96 & TimeRole（本文） & 0.176±0.004 & 0.264±0.003 \\
+& & Recent96 & 0.191±0.010 & 0.272±0.007 \\
+& & Concat & 0.176±0.005 & 0.265±0.004 \\
+& & NoDiff & \textbf{0.175±0.003} & \underline{0.264±0.003} \\
+& & GlobalGate & \underline{0.175±0.004} & \textbf{0.264±0.003} \\
+\addlinespace[1pt]
+& 720 & TimeRole（本文） & \underline{0.375±0.001} & \textbf{0.392±0.003} \\
+& & Recent96 & 0.411±0.009 & 0.409±0.007 \\
+& & Concat & 0.377±0.002 & 0.393±0.003 \\
+& & NoDiff & 0.376±0.001 & 0.393±0.003 \\
+& & GlobalGate & \textbf{0.374±0.000} & \underline{0.392±0.003} \\
+\bottomrule\noalign{}
+\end{tabular*}
+\end{table}
+
+\subsection{远期历史使用分析}
+
+\subsubsection{远期历史干预}
+
+Recent96 对照确认了 DHC 分支的整体贡献，但还需要判断模型是否利用了远期历史的样本内容。为此，我们固定验证集选出的检查点和最后96点近期窗口，仅在推理阶段改变输入 DHC 的前240点历史。五种干预分别破坏三类信息：样本错配替换远期历史与当前样本的对应关系；时间打乱和时间反转改变历史内部顺序；均值替代和噪声替代移除真实轨迹，同时保持基本数值尺度。由于模型参数保持冻结，干预前后的误差变化直接反映模型对远期输入的响应。
+
+表~\ref{tab:history-intervention} 显示，20组干预均使验证 MSE 上升，平均增幅为20.992\%。样本错配在四个任务中均造成最大的误差增幅，范围为24.05\%--75.91\%；均值替代和噪声替代也在全部任务上带来一致退化。由此可见，DHC 的输出随远期历史内容及其与当前样本的对应关系而变化，并非只提供与输入无关的固定修正。
+
+不同数据集对历史结构的响应并不相同。ETTm1-96/720 在时间打乱下分别上升25.60\%和12.29\%，在时间反转下分别上升50.87\%和22.51\%；ETTm2 对这两类顺序干预的变化较小，但对样本错配仍分别上升34.65\%和65.48\%。这一差异提示，ETTm1 的预测更受远期历史顺序影响，而 ETTm2 在当前设置下更依赖远期历史与近期窗口的样本一致性。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{破坏远期历史后验证 MSE 的相对增幅。正值表示相对完整历史性能下降；全部结果基于随机种子2021的冻结检查点。}
+\label{tab:history-intervention}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{1.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}llccccc@{}}
+\toprule\noalign{}
+数据集 & \(H\) & 样本错配 & 时间打乱 & 时间反转 & 均值替代 & 噪声替代 \\
+\midrule\noalign{}
+ETTm1 & 96 & +75.91\% & +25.60\% & +50.87\% & +25.49\% & +26.39\% \\
+& 720 & +24.05\% & +12.29\% & +22.51\% & +13.41\% & +13.72\% \\
+ETTm2 & 96 & +34.65\% & +3.13\% & +6.05\% & +4.04\% & +4.16\% \\
+& 720 & +65.48\% & +1.14\% & +1.80\% & +4.54\% & +4.61\% \\
+\bottomrule\noalign{}
+\end{tabular}
+\end{table}
+
+\subsection{跨预测主干迁移}
+
+为考察近期---远期职责分化是否依赖 RGSP 的图与状态空间结构，我们将 DHC 接入 TimeXer \citep{Wang2024TimeXer}。TimeXer 使用 patch 自注意力和变量交叉注意力组织输入，与 RGSP 的建模路径不同。两种设置读取相同的336点历史：TimeXer 处理最后96点，TimeXer+DHC 进一步利用此前240点生成条件修正。该实验保持历史划分一致，仅改变近期预测主干及是否接入 DHC。
+
+如表~\ref{tab:backbone-transfer} 所示，TimeXer+DHC 在 ETTm1、ETTm2 的96步和720步任务上均同时改善 MSE 与 MAE。MSE 改善范围为3.809\%--7.426\%，MAE 改善范围为1.096\%--2.583\%，任务级宏平均改善分别为5.673\%和2.123\%。因此，DHC 的收益能够在非图结构的近期预测主干上复现，支持近期高分辨率预测与远期压缩修正相分离的设计并非 RGSP 所独有。该迁移实验覆盖一个替代主干、两个分钟级数据集和一个随机种子，其结论范围与此一致。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{DHC 接入 TimeXer 后的测试结果。全部结果使用随机种子2021，并由验证集 MSE 选择检查点；显示值保留三位小数。}
+\label{tab:backbone-transfer}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{1.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrrc@{}}
+\toprule\noalign{}
+数据集 & \(H\) & 方法 & MSE & MAE & 改善（MSE/MAE） \\
+\midrule\noalign{}
+ETTm1 & 96 & TimeXer+DHC & \textbf{0.298} & \textbf{0.350} & 7.426\% / 2.240\% \\
+& & TimeXer & \underline{0.322} & \underline{0.358} & -- \\
+& 720 & TimeXer+DHC & \textbf{0.432} & \textbf{0.430} & 4.517\% / 2.583\% \\
+& & TimeXer & \underline{0.453} & \underline{0.441} & -- \\
+\midrule
+ETTm2 & 96 & TimeXer+DHC & \textbf{0.165} & \textbf{0.253} & 3.809\% / 1.096\% \\
+& & TimeXer & \underline{0.171} & \underline{0.256} & -- \\
+& 720 & TimeXer+DHC & \textbf{0.369} & \textbf{0.387} & 6.941\% / 2.574\% \\
+& & TimeXer & \underline{0.397} & \underline{0.397} & -- \\
+\bottomrule\noalign{}
+\end{tabular*}
+\end{table}
+
+\subsection{精度---效率折中}
+
+表~\ref{tab:efficiency} 进一步比较三种历史使用方式的精度与资源开销。Recent96 仅将最后96点送入近期主干；Raw336 将完整336点全部交由同类主干处理；TimeRole 保持96点近期主干，并用 DHC 压缩处理此前240点。参数量、推理延迟和峰值显存均在相同硬件、批量大小和检查点评估流程下测量，表中数值为 ETTm1 与 ETTm2 的平均结果。
+
+相对 Recent96，TimeRole 的参数量平均增加约0.5\%，每批推理延迟增加约9.1\%，峰值显存基本不变，同时在四个任务上获得5.215\%的宏平均 MSE 改善。与 Raw336 相比，TimeRole 平均减少69.968\%的参数量、43.505\%的推理延迟和67.735\%的峰值显存，二者的四任务宏平均 MSE 相差2.046\%。进一步看，Raw336 在96步预测上的平均验证 MSE 略低，而 TimeRole 在720步预测上更低。该结果表明，压缩远期历史可以避免直接扩展近期主干所带来的大部分资源增长，并在保留长历史信息的同时取得更均衡的精度---效率关系。
+
+\begin{table}[H]
+\tablecaptionfont
+\caption{相同评估设置下的绝对精度与资源成本。每个单元为 ETTm1 与 ETTm2 在随机种子2021下的平均值；显存以 MiB 计，延迟为毫秒/批。}
+\label{tab:efficiency}
+\centering
+\tablebodyfont
+\setlength{\tabcolsep}{1.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}llrrrr@{}}
+\toprule\noalign{}
+\(H\) & 方法 & \shortstack{验证\\MSE} & \shortstack{参数量\\（M）} & \shortstack{延迟\\（ms/batch）} & \shortstack{峰值显存\\（MiB）} \\
+\midrule\noalign{}
+96 & Recent96 & 0.2666 & 0.997 & \textbf{4.555} & \textbf{132.62} \\
+& Raw336 & \textbf{0.2417} & 3.232 & 8.924 & 411.45 \\
+& TimeRole & 0.2454 & 1.004 & 5.054 & 132.73 \\
+720 & Recent96 & 0.6320 & 6.809 & \textbf{4.902} & \textbf{158.17} \\
+& Raw336 & 0.6114 & 23.571 & 9.328 & 492.35 \\
+& TimeRole & \textbf{0.6095} & 6.836 & 5.257 & 158.89 \\
+\bottomrule\noalign{}
+\end{tabular*}
+\end{table}
+
+\subsection{讨论}
+
+实验结果共同支持按时间距离分配建模职责这一核心设计。在五个公开数据集的统一长输入协议下，TimeRole 取得12个最佳 MSE、11个最佳 MAE，并保持较低的任务级平均排名。更重要的是，主结果中的竞争力能够由受控实验进一步解释：在近期预测器完全一致时，加入 DHC 在八个任务和三个随机种子上持续降低两项误差；当远期历史的样本对应关系或轨迹内容被破坏时，冻结模型的预测误差随之上升。两组实验分别确认了远期分支的增量收益及其对输入内容的依赖。
+
+跨主干与资源实验进一步说明了这一职责分化的作用方式。DHC 接入 TimeXer 后在四个任务上同时改善 MSE 与 MAE，表明远期修正可以与另一类近期预测器结合；与 Raw336 的对照则显示，将完整长序列直接送入高成本主干并不是利用远期历史的唯一方式。TimeRole 通过压缩远期路径获得接近 Raw336 的平均精度，同时大幅降低参数量、延迟和显存，从而将可访问历史范围与近期主干的计算长度分离。
+
+现有结果也呈现出明确的数据依赖性。ETTm1 对远期历史顺序变化更敏感，而 ETTm2 的内部设计对照中，NoDiff 或 GlobalGate 在个别 MSE 指标上略优于完整模型。这说明职责分化带来的总体收益较为稳定，但最合适的修正形式仍可能随序列结构变化。当前实验采用固定的96/240历史划分、固定池化率和跨样本共享的变量级系数，跨主干证据也集中在两个 ETTm 数据集。基于这些观察，后续可进一步研究样本自适应的历史边界、压缩分辨率与修正强度，以适配不同时间尺度和变量关系。
+
+\section{结论}
+
+本文提出 TimeRole，通过 RGSP 生成高分辨率基础预测，并通过 DHC 将远期历史转化为近期状态条件下的预测修正。这一近期---远期职责分化架构扩展了模型可访问的历史范围，同时将高成本的图传播和状态空间扫描集中于近期窗口。统一基线比较、多随机种子对照、历史干预和跨主干迁移共同表明，TimeRole 能够稳定利用样本匹配的远期历史，并以接近 Recent96 的成本获得有竞争力的预测性能。因此，TimeRole 为多变量长期预测提供了一种兼顾历史利用与计算效率的职责分化建模范式。

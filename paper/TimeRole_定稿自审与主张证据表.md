@@ -11,11 +11,11 @@
 | 近期窗口 | recent window，最后96点 | 短期窗口、局部窗口 | 全文使用“近期窗口” |
 | 远期历史 | distant history，前240点 | old history、older history、旧历史、早期历史、长期历史段 | 全文使用“远期历史”，英文统一为“distant history” |
 | TimeRole | Role-Differentiated Historical Modeling | GraphMamba–CMRHM、GraphMambaCMRHM、GraphMamba-CMRHM | 论文、代码与新实验统一使用 TimeRole；旧名仅用于历史归档和兼容入口 |
-| 图增强状态空间近期预测器 | graph-enhanced state-space recent predictor | GraphMamba、近期预测器主干 | 指 TimeRole 内生成基础预测的近期路径；不作为独立模型品牌 |
-| 压缩历史修正分支 | compressed-history correction branch | CMRHM、CCHM、条件历史模块、长记忆模块 | 不设缩写；仅指 TimeRole 的远期历史路径 |
+| 图增强状态空间近期预测器（RGSP） | recent graph-enhanced state-space predictor (RGSP) | GraphMamba、近期预测器主干 | 摘要和正文各自首次定义后统一使用 RGSP；指 TimeRole 内生成基础预测的近期路径 |
+| 远期历史修正器（DHC） | distant-history corrector (DHC) | 压缩历史修正分支、CMRHM、CCHM、条件历史模块、长记忆模块 | 摘要和正文各自首次定义后统一使用 DHC；指 TimeRole 的远期历史路径 |
 | 训练先验图 | train-data prior graph | 数据图、固定图、全数据图 | 仅由训练区间的距离相关性构造，经稀疏化和行归一化后固定使用 |
 | 学习图 | globally learned variable graph | 动态图、样本自适应图、时变图 | 由可学习节点嵌入生成，对所有样本和时间共享；不得暗示逐样本生成邻接矩阵 |
-| 近期预测器 | recent predictor | 短输入模型、基础主干 | 泛指只处理近期窗口的预测器；实验变体名保留 Recent96 |
+| Recent96 | RGSP-only baseline using the last 96 points | 近期预测器、短输入模型 | 仅用于实验对照，且严格表示“RGSP + 最后96点输入”；正文首次出现时说明 |
 | 基础预测 | base forecast | 主预测、初始输出 | 全文使用“基础预测” |
 | 条件修正 | conditional correction | 残差增强、记忆输出 | 全文使用“条件修正” |
 | 变量级注入系数 | variable-wise injection coefficient | 通道注意力、动态门控 | 由 $\tanh(a_n)$ 给出，跨样本和预测步共享；有界的是系数而非修正绝对幅值 |
@@ -27,16 +27,16 @@
 | 主张 | 直接证据 | 支持状态 | 边界 |
 |---|---|---|---|
 | 完整模型在统一协议下具有总体竞争力 | 五数据集×四跨度的三随机种子测试 MSE/MAE，与7个本地基线比较；MSE为12/20最优、平均排名1.85，MAE为11/20最优、平均排名1.65 | 支持 | 相对各任务最佳有效基线，宏平均 MSE 高0.234%、MAE低0.059%；总体优势较小，不应表述为全面领先 |
-| TimeRole 稳定改善近期预测器 | ETTm1/ETTm2×四跨度×三种子，测试 MSE/MAE 24/24配对胜场 | 支持 | 验证集选点后测试；两个同族数据集 |
+| TimeRole 稳定改善 Recent96 | ETTm1/ETTm2×四跨度×三种子，测试 MSE/MAE 24/24配对胜场 | 支持 | 验证集选点后测试；两个同族数据集 |
 | 模型使用样本匹配的远期历史 | 4任务×5类破坏性干预全部使 MSE 上升；样本错配退化24.05%–75.91% | 支持 | 精确时间顺序依赖具有数据集差异 |
-| 压缩历史修正机制可迁移至非图主干 | TimeXer 上4/4测试任务改善 | 有限支持 | 单额外主干、两数据集、单种子 |
+| DHC 可迁移至非图主干 | TimeXer 上4/4测试任务改善 | 有限支持 | 单额外主干、两数据集、单种子 |
 | TimeRole 接近 Recent96 的成本 | 参数、延迟、显存绝对测量 | 支持 | ETTm1/ETTm2，跨度96/720，单一硬件 |
 | TimeRole 全面优于 Raw336 | 容量对照仅3/8 MSE胜场 | 不支持，正文已删除 | 只能主张精度—成本折中 |
 | 配对差分和通道门控分别不可替代 | Full 对 Concat/NoDiff/GlobalGate 的胜场不足 | 不支持，正文已收缩 | 仅作为完整实现组成 |
 
 ## 五维自审
 
-1. **贡献：通过。** 主贡献已收敛为 TimeRole 的历史职责分化；图增强状态空间近期预测器与压缩历史修正分支被明确写为模型内部的互补路径。
+1. **贡献：通过。** 主贡献已收敛为 TimeRole 的历史职责分化；RGSP 与 DHC 被明确写为模型内部的互补路径。
 2. **写作清晰度：重构中。** 正在按同类算法论文的段落功能重构摘要、引言、方法与实验；正式图1已经完成，仍需结合候选稿检查图文分工。
 3. **实验强度：有条件通过。** 核心控制和 TimeMixer 稳定性修复已经完成；最近强方法的同协议覆盖仍偏弱。
 4. **评估完整性：基本通过。** 三随机种子 MSE/MAE 主表、稳定性、干预、迁移和效率各自回答独立问题；Solar 当前不进入主文。
