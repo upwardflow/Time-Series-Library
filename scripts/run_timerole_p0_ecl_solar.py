@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the frozen eight-model Electricity/Solar P0 matrix.
+"""Run the frozen configurable Electricity/Solar P0 matrix.
 
 The pilot phase is validation-only. The formal phase selects checkpoints using
 validation loss and evaluates the selected checkpoint once through the streaming
@@ -29,7 +29,8 @@ import run_graphmamba_backbone_ablation as base
 OUTPUT = ROOT / "logs" / "timerole_p0" / "ecl_solar"
 MODELS = (
     "TimeRole", "GraphMambaRecent", "DLinear", "PatchTST",
-    "iTransformer", "TimeMixer", "SMamba", "TimeFilter",
+    "iTransformer", "TimeMixer", "TimesNet", "SMamba", "MSGNet",
+    "TimeFilter",
 )
 DISPLAY = {"GraphMambaRecent": "Recent96"}
 DATASET_ORDER = ("electricity", "solar")
@@ -104,6 +105,10 @@ def preset(model: str, dataset: str, horizon: int) -> dict[str, object]:
                     learning_rate=1e-2, epochs=20, patience=10,
                     down_sampling_layers=3, down_sampling_window=2,
                     down_sampling_method="avg")
+    if model == "TimesNet":
+        return dict(label_len=48, e_layers=2, d_model=32, d_ff=32, n_heads=4,
+                    batch_size=batch, learning_rate=1e-4, epochs=10,
+                    patience=3, top_k=5)
     if model == "SMamba":
         if dataset == "electricity":
             learning_rate = 1e-3 if horizon == 96 else 5e-4
@@ -123,6 +128,11 @@ def preset(model: str, dataset: str, horizon: int) -> dict[str, object]:
         return dict(label_len=48, e_layers=2, d_model=256, d_ff=512, n_heads=8,
                     batch_size=8, learning_rate=5e-4, epochs=10, patience=3,
                     patch_len=48, stride=48, dropout=dropout, alpha=0.1, top_p=0.5)
+    if model == "MSGNet":
+        return dict(label_len=48, e_layers=2, d_model=32, d_ff=64,
+                    n_heads=4, batch_size=batch, learning_rate=1e-4,
+                    epochs=10, patience=3, dropout=0.1, top_k=3,
+                    conv_channel=32, skip_channel=32)
     if model in {"TimeRole", "GraphMambaRecent"}:
         return dict(label_len=48, e_layers=1, d_model=64, d_ff=128, n_heads=8,
                     batch_size=batch, learning_rate=5e-4, epochs=100, patience=6,
@@ -163,7 +173,11 @@ def command(task: Task, args: argparse.Namespace) -> list[str]:
         "--des", task.name, "--itr", "1",
         "--test_after_train", "0" if args.phase == "pilot" else "1",
     ]
-    for key in ("patch_len", "stride", "down_sampling_layers", "down_sampling_window", "alpha", "top_p"):
+    for key in (
+        "patch_len", "stride", "top_k", "down_sampling_layers",
+        "down_sampling_window", "conv_channel", "skip_channel", "alpha",
+        "top_p",
+    ):
         if key in config:
             result.extend(("--" + key, str(config[key])))
     if "down_sampling_method" in config:

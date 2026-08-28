@@ -1,0 +1,7 @@
+# Figure 2 caption (v1)
+
+**Fig. 2 | Evidence for distant-history conditional correction.** **a** Paired test-set improvements of TimeRole over RGSP-96 across ETTm1 and ETTm2 at four prediction horizons. Each marker represents one task–seed pair (three seeds per task; \(n=24\)); colour denotes the dataset and shape denotes the prediction horizon. Improvements are calculated as \((e_{\mathrm{baseline}}-e_{\mathrm{DHC}})/e_{\mathrm{baseline}}\times100\%\), so positive values favour TimeRole. **b** Relative change in validation MSE after replacing intact distant history with sample mismatch, temporal shuffle, temporal reversal, recent-mean replacement or noise replacement. Values are obtained from one frozen checkpoint (seed 2021); positive values indicate degradation relative to intact history. **c** Paired test-set improvements of TimeXer+DHC over TimeXer-336 using the same metric convention as in **a** (three seeds per task; \(n=12\) task–seed pairs). No inferential test or confidence interval is shown; all available paired runs are displayed. Source data are provided with the figure.
+
+## 中文参考
+
+**图 2 | 远期历史条件修正的实验证据。** **a** TimeRole 相对 RGSP-96 在 ETTm1、ETTm2 四个预测跨度上的逐种子测试集改善。每个点表示一个任务—种子组合（每任务三个种子，共 \(n=24\)）；颜色表示数据集，点型表示预测跨度。改善率定义为 \((e_{\mathrm{baseline}}-e_{\mathrm{DHC}})/e_{\mathrm{baseline}}\times100\%\)，正值表示 TimeRole 更优。**b** 将完整远期历史替换为样本错配、时间打乱、时间反转、近期均值或噪声后，验证 MSE 相对完整历史的变化。结果来自随机种子 2021 的单个冻结检查点，正值表示性能下降。**c** TimeXer+DHC 相对 TimeXer-336 的逐种子测试集改善，指标定义与 **a** 相同（每任务三个种子，共 \(n=12\) 个任务—种子组合）。图中不报告推断检验或置信区间，而是展示全部可用配对运行。图源数据随图提供。

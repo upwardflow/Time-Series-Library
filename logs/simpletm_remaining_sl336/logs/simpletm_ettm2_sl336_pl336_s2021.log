@@ -1,0 +1,94 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           simpletm_ettm2_sl336_pl336_s2021Model:              SimpleTM            
+
+[1mData Loader[0m
+  Data:               ETTm2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm2.csv           Features:           M                   
+  Target:             OT                  Freq:               t                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           336                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            64                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               64                  
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         128                 
+  Patience:           3                   Learning Rate:      0.006               
+  Des:                simpletm_ettm2_sl336_pl336_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SimpleTM ...
+>>>>>>>start training : long_term_forecast_simpletm_ettm2_sl336_pl336_s2021_SimpleTM_ETTm2_ftM_sl336_ll0_pl336_dm64_nh8_el1_dl1_df64_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm2_sl336_pl336_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 33889
+val 11185
+	iters: 100, epoch: 1 | loss: 0.5275582
+	speed: 0.0172s/iter; left time: 43.8365s
+	iters: 200, epoch: 1 | loss: 0.3738112
+	speed: 0.0092s/iter; left time: 22.5632s
+Epoch: 1 cost time: 2.7178077697753906
+Epoch: 1, Steps: 265 | Train Loss: 0.4351195 Vali Loss: 0.2108460
+Validation loss decreased (inf --> 0.210846).  Saving model ...
+	iters: 100, epoch: 2 | loss: 0.3534742
+	speed: 0.0192s/iter; left time: 43.9655s
+	iters: 200, epoch: 2 | loss: 0.4458510
+	speed: 0.0090s/iter; left time: 19.6187s
+Epoch: 2 cost time: 2.3989486694335938
+Epoch: 2, Steps: 265 | Train Loss: 0.3888832 Vali Loss: 0.2115726
+EarlyStopping counter: 1 out of 3
+	iters: 100, epoch: 3 | loss: 0.3027350
+	speed: 0.0194s/iter; left time: 39.1304s
+	iters: 200, epoch: 3 | loss: 0.3507877
+	speed: 0.0113s/iter; left time: 21.7949s
+Epoch: 3 cost time: 2.8727171421051025
+Epoch: 3, Steps: 265 | Train Loss: 0.3673975 Vali Loss: 0.2078590
+Validation loss decreased (0.210846 --> 0.207859).  Saving model ...
+	iters: 100, epoch: 4 | loss: 0.2822006
+	speed: 0.0220s/iter; left time: 38.6097s
+	iters: 200, epoch: 4 | loss: 0.2576666
+	speed: 0.0095s/iter; left time: 15.7431s
+Epoch: 4 cost time: 2.467068672180176
+Epoch: 4, Steps: 265 | Train Loss: 0.3457846 Vali Loss: 0.2129192
+EarlyStopping counter: 1 out of 3
+	iters: 100, epoch: 5 | loss: 0.3349971
+	speed: 0.0190s/iter; left time: 28.3806s
+	iters: 200, epoch: 5 | loss: 0.4441154
+	speed: 0.0098s/iter; left time: 13.6760s
+Epoch: 5 cost time: 2.5379574298858643
+Epoch: 5, Steps: 265 | Train Loss: 0.3294341 Vali Loss: 0.2121333
+EarlyStopping counter: 2 out of 3
+	iters: 100, epoch: 6 | loss: 0.2689190
+	speed: 0.0200s/iter; left time: 24.5628s
+	iters: 200, epoch: 6 | loss: 0.3254319
+	speed: 0.0095s/iter; left time: 10.7430s
+Epoch: 6 cost time: 2.497896909713745
+Epoch: 6, Steps: 265 | Train Loss: 0.3186390 Vali Loss: 0.2168512
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 3, "best_mae": 0.3150972991698635, "best_mse": 0.2078590057974324, "epochs_ran": 6, "metric_version": "element_weighted_v1", "train_duration_seconds": 19.045347835868597, "train_peak_cuda_memory_bytes": 71249920}
+>>>>>>>testing : long_term_forecast_simpletm_ettm2_sl336_pl336_s2021_SimpleTM_ETTm2_ftM_sl336_ll0_pl336_dm64_nh8_el1_dl1_df64_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm2_sl336_pl336_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 11185
+EVALUATION_RESULT {"batches": 88, "elapsed_seconds": 0.38357756892219186, "elements": 26307120, "mae": 0.3390639631851567, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 4.358836010479453, "mse": 0.2871084729450145, "origin_count": 11185, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints/long_term_forecast_simpletm_ettm2_sl336_pl336_s2021_SimpleTM_ETTm2_ftM_sl336_ll0_pl336_dm64_nh8_el1_dl1_df64_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm2_sl336_pl336_s2021_0/test_origin_metrics.npz", "parameter_count": 68976, "peak_cuda_memory_bytes": 52999168, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.2871084729450145, mae:0.3390639631851567, dtw:Not calculated

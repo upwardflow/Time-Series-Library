@@ -1,0 +1,97 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           simpletm_weather_sl336_pl336_s2023Model:              SimpleTM            
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/weather
+  Data Path:          weather.csv         Features:           M                   
+  Target:             CO2 (ppm)           Freq:               t                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           336                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             21                  Dec In:             21                  
+  C Out:              21                  d model:            32                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         256                 
+  Patience:           3                   Learning Rate:      0.009               
+  Des:                simpletm_weather_sl336_pl336_s2023Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SimpleTM ...
+>>>>>>>start training : long_term_forecast_simpletm_weather_sl336_pl336_s2023_SimpleTM_custom_ftM_sl336_ll0_pl336_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_weather_sl336_pl336_s2023_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 36216
+val 4935
+	iters: 100, epoch: 1 | loss: 0.5926179
+	speed: 0.0275s/iter; left time: 36.3411s
+Epoch: 1 cost time: 3.0229439735412598
+Epoch: 1, Steps: 142 | Train Loss: 0.6893235 Vali Loss: 0.5753611
+Validation loss decreased (inf --> 0.575361).  Saving model ...
+	iters: 100, epoch: 2 | loss: 0.5188443
+	speed: 0.0298s/iter; left time: 35.1630s
+Epoch: 2 cost time: 2.7788729667663574
+Epoch: 2, Steps: 142 | Train Loss: 0.5473875 Vali Loss: 0.5470402
+Validation loss decreased (0.575361 --> 0.547040).  Saving model ...
+	iters: 100, epoch: 3 | loss: 0.5366534
+	speed: 0.0306s/iter; left time: 31.7545s
+Epoch: 3 cost time: 2.827620506286621
+Epoch: 3, Steps: 142 | Train Loss: 0.5322499 Vali Loss: 0.5376803
+Validation loss decreased (0.547040 --> 0.537680).  Saving model ...
+	iters: 100, epoch: 4 | loss: 0.5267182
+	speed: 0.0312s/iter; left time: 27.9478s
+Epoch: 4 cost time: 2.873598337173462
+Epoch: 4, Steps: 142 | Train Loss: 0.5255293 Vali Loss: 0.5283081
+Validation loss decreased (0.537680 --> 0.528308).  Saving model ...
+	iters: 100, epoch: 5 | loss: 0.4888356
+	speed: 0.0298s/iter; left time: 22.4764s
+Epoch: 5 cost time: 2.7201061248779297
+Epoch: 5, Steps: 142 | Train Loss: 0.5187242 Vali Loss: 0.5264572
+Validation loss decreased (0.528308 --> 0.526457).  Saving model ...
+	iters: 100, epoch: 6 | loss: 0.4753442
+	speed: 0.0301s/iter; left time: 18.3726s
+Epoch: 6 cost time: 2.715714931488037
+Epoch: 6, Steps: 142 | Train Loss: 0.5136227 Vali Loss: 0.5255261
+Validation loss decreased (0.526457 --> 0.525526).  Saving model ...
+	iters: 100, epoch: 7 | loss: 0.5009333
+	speed: 0.0295s/iter; left time: 13.8190s
+Epoch: 7 cost time: 2.8608481884002686
+Epoch: 7, Steps: 142 | Train Loss: 0.5099821 Vali Loss: 0.5256109
+EarlyStopping counter: 1 out of 3
+	iters: 100, epoch: 8 | loss: 0.4592040
+	speed: 0.0345s/iter; left time: 11.2830s
+Epoch: 8 cost time: 3.027615547180176
+Epoch: 8, Steps: 142 | Train Loss: 0.5062465 Vali Loss: 0.5262350
+EarlyStopping counter: 2 out of 3
+	iters: 100, epoch: 9 | loss: 0.4736692
+	speed: 0.0297s/iter; left time: 5.4880s
+Epoch: 9 cost time: 2.704071521759033
+Epoch: 9, Steps: 142 | Train Loss: 0.5038647 Vali Loss: 0.5275742
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 6, "best_mae": 0.367464483365957, "best_mse": 0.5255260550743853, "epochs_ran": 9, "metric_version": "element_weighted_v1", "train_duration_seconds": 28.70720279403031, "train_peak_cuda_memory_bytes": 164755968}
+>>>>>>>testing : long_term_forecast_simpletm_weather_sl336_pl336_s2023_SimpleTM_custom_ftM_sl336_ll0_pl336_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_weather_sl336_pl336_s2023_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 10204
+EVALUATION_RESULT {"batches": 40, "elapsed_seconds": 0.6286452389322221, "elements": 71999424, "mae": 0.27734036933059353, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 15.716130973305553, "mse": 0.23964855640286095, "origin_count": 10204, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints/long_term_forecast_simpletm_weather_sl336_pl336_s2023_SimpleTM_custom_ftM_sl336_ll0_pl336_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_weather_sl336_pl336_s2023_0/test_origin_metrics.npz", "parameter_count": 29072, "peak_cuda_memory_bytes": 116518912, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.23964855640286095, mae:0.27734036933059353, dtw:Not calculated

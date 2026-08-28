@@ -1,0 +1,73 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           simpletm_etth2_sl336_pl720_s2022Model:              SimpleTM            
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           720                 Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            32                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         256                 
+  Patience:           3                   Learning Rate:      0.003               
+  Des:                simpletm_etth2_sl336_pl720_s2022Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SimpleTM ...
+>>>>>>>start training : long_term_forecast_simpletm_etth2_sl336_pl720_s2022_SimpleTM_ETTh2_ftM_sl336_ll0_pl720_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl720_s2022_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 7585
+val 2161
+Epoch: 1 cost time: 0.6435043811798096
+Epoch: 1, Steps: 30 | Train Loss: 0.9733701 Vali Loss: 0.7298262
+Validation loss decreased (inf --> 0.729826).  Saving model ...
+Epoch: 2 cost time: 0.37038183212280273
+Epoch: 2, Steps: 30 | Train Loss: 0.8495871 Vali Loss: 0.6442328
+Validation loss decreased (0.729826 --> 0.644233).  Saving model ...
+Epoch: 3 cost time: 0.4562063217163086
+Epoch: 3, Steps: 30 | Train Loss: 0.8003876 Vali Loss: 0.6301293
+Validation loss decreased (0.644233 --> 0.630129).  Saving model ...
+Epoch: 4 cost time: 0.45066404342651367
+Epoch: 4, Steps: 30 | Train Loss: 0.7777993 Vali Loss: 0.6258352
+Validation loss decreased (0.630129 --> 0.625835).  Saving model ...
+Epoch: 5 cost time: 0.44971179962158203
+Epoch: 5, Steps: 30 | Train Loss: 0.7646065 Vali Loss: 0.6352355
+EarlyStopping counter: 1 out of 3
+Epoch: 6 cost time: 0.4641392230987549
+Epoch: 6, Steps: 30 | Train Loss: 0.7513191 Vali Loss: 0.6416722
+EarlyStopping counter: 2 out of 3
+Epoch: 7 cost time: 0.4157297611236572
+Epoch: 7, Steps: 30 | Train Loss: 0.7421427 Vali Loss: 0.6492155
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 4, "best_mae": 0.5505395005160015, "best_mse": 0.6258352402207605, "epochs_ran": 7, "metric_version": "element_weighted_v1", "train_duration_seconds": 4.479774905834347, "train_peak_cuda_memory_bytes": 82248704}
+>>>>>>>testing : long_term_forecast_simpletm_etth2_sl336_pl720_s2022_SimpleTM_ETTh2_ftM_sl336_ll0_pl720_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl720_s2022_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2161
+EVALUATION_RESULT {"batches": 9, "elapsed_seconds": 0.062084001023322344, "elements": 10891440, "mae": 0.4421204662790228, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 6.898222335924705, "mse": 0.41634573372529254, "origin_count": 2161, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints/long_term_forecast_simpletm_etth2_sl336_pl720_s2022_SimpleTM_ETTh2_ftM_sl336_ll0_pl720_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl720_s2022_0/test_origin_metrics.npz", "parameter_count": 41128, "peak_cuda_memory_bytes": 72219648, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.41634573372529254, mae:0.4421204662790228, dtw:Not calculated

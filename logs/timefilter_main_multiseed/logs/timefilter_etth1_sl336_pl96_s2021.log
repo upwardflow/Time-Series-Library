@@ -1,0 +1,115 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           timefilter_etth1_sl336_pl96_s2021Model:              TimeFilter          
+
+[1mData Loader[0m
+  Data:               ETTh1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh1.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timefilter_main_multiseed/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            128                 
+  n heads:            8                   e layers:           2                   
+  d layers:           1                   d FF:               256                 
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.8                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         32                  
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                timefilter_etth1_sl336_pl96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: TimeFilter ...
+>>>>>>>start training : long_term_forecast_timefilter_etth1_sl336_pl96_s2021_TimeFilter_ETTh1_ftM_sl336_ll48_pl96_dm128_nh8_el2_dl1_df256_expand2_dc4_fc3_ebtimeF_dtTrue_timefilter_etth1_sl336_pl96_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2785
+	iters: 100, epoch: 1 | loss: 0.3568256
+	speed: 1.3488s/iter; left time: 3332.8410s
+	iters: 200, epoch: 1 | loss: 0.3280768
+	speed: 1.3262s/iter; left time: 3144.3241s
+Epoch: 1 cost time: 342.44907546043396
+Epoch: 1, Steps: 257 | Train Loss: 0.3805931 Vali Loss: 0.6925490
+Validation loss decreased (inf --> 0.692549).  Saving model ...
+Updating learning rate to 0.0001
+	iters: 100, epoch: 2 | loss: 0.4333894
+	speed: 2.4558s/iter; left time: 5437.1724s
+	iters: 200, epoch: 2 | loss: 0.3220362
+	speed: 1.3254s/iter; left time: 2801.8360s
+Epoch: 2 cost time: 338.69258737564087
+Epoch: 2, Steps: 257 | Train Loss: 0.3499829 Vali Loss: 0.6962496
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 5e-05
+	iters: 100, epoch: 3 | loss: 0.2867104
+	speed: 2.4560s/iter; left time: 4806.3990s
+	iters: 200, epoch: 3 | loss: 0.2691017
+	speed: 1.3252s/iter; left time: 2460.8601s
+Epoch: 3 cost time: 340.0525312423706
+Epoch: 3, Steps: 257 | Train Loss: 0.3385651 Vali Loss: 0.6861411
+Validation loss decreased (0.692549 --> 0.686141).  Saving model ...
+Updating learning rate to 2.5e-05
+	iters: 100, epoch: 4 | loss: 0.3602178
+	speed: 2.4576s/iter; left time: 4177.9102s
+	iters: 200, epoch: 4 | loss: 0.3016858
+	speed: 1.3211s/iter; left time: 2113.7318s
+Epoch: 4 cost time: 338.7319643497467
+Epoch: 4, Steps: 257 | Train Loss: 0.3329568 Vali Loss: 0.6814888
+Validation loss decreased (0.686141 --> 0.681489).  Saving model ...
+Updating learning rate to 1.25e-05
+	iters: 100, epoch: 5 | loss: 0.3384538
+	speed: 2.4497s/iter; left time: 3534.8946s
+	iters: 200, epoch: 5 | loss: 0.3387629
+	speed: 1.3133s/iter; left time: 1763.8103s
+Epoch: 5 cost time: 337.77967500686646
+Epoch: 5, Steps: 257 | Train Loss: 0.3300472 Vali Loss: 0.6794699
+Validation loss decreased (0.681489 --> 0.679470).  Saving model ...
+Updating learning rate to 6.25e-06
+	iters: 100, epoch: 6 | loss: 0.3612021
+	speed: 2.4576s/iter; left time: 2914.7308s
+	iters: 200, epoch: 6 | loss: 0.4133313
+	speed: 1.3176s/iter; left time: 1430.8882s
+Epoch: 6 cost time: 337.85706543922424
+Epoch: 6, Steps: 257 | Train Loss: 0.3280952 Vali Loss: 0.6796150
+EarlyStopping counter: 1 out of 3
+Updating learning rate to 3.125e-06
+	iters: 100, epoch: 7 | loss: 0.3026006
+	speed: 2.4450s/iter; left time: 2271.4214s
+	iters: 200, epoch: 7 | loss: 0.3138424
+	speed: 1.3318s/iter; left time: 1104.0505s
+Epoch: 7 cost time: 340.1973295211792
+Epoch: 7, Steps: 257 | Train Loss: 0.3271829 Vali Loss: 0.6814178
+EarlyStopping counter: 2 out of 3
+Updating learning rate to 1.5625e-06
+	iters: 100, epoch: 8 | loss: 0.3205460
+	speed: 2.4485s/iter; left time: 1645.3878s
+	iters: 200, epoch: 8 | loss: 0.3038901
+	speed: 1.3208s/iter; left time: 755.4907s
+Epoch: 8 cost time: 339.0321388244629
+Epoch: 8, Steps: 257 | Train Loss: 0.3265896 Vali Loss: 0.6798116
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 5, "best_mae": 0.554342245878272, "best_mse": 0.6794699004157706, "epochs_ran": 8, "metric_version": "element_weighted_v1", "train_duration_seconds": 3062.7387314401567, "train_peak_cuda_memory_bytes": 23843833856}
+>>>>>>>testing : long_term_forecast_timefilter_etth1_sl336_pl96_s2021_TimeFilter_ETTh1_ftM_sl336_ll48_pl96_dm128_nh8_el2_dl1_df256_expand2_dc4_fc3_ebtimeF_dtTrue_timefilter_etth1_sl336_pl96_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2785
+EVALUATION_RESULT {"batches": 88, "elapsed_seconds": 38.64465023530647, "elements": 1871520, "mae": 0.4001837795551408, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 439.1437526739372, "mse": 0.3782188231429147, "origin_count": 2785, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/timefilter_main_multiseed/checkpoints/long_term_forecast_timefilter_etth1_sl336_pl96_s2021_TimeFilter_ETTh1_ftM_sl336_ll48_pl96_dm128_nh8_el2_dl1_df256_expand2_dc4_fc3_ebtimeF_dtTrue_timefilter_etth1_sl336_pl96_s2021_0/test_origin_metrics.npz", "parameter_count": 2245952, "peak_cuda_memory_bytes": 4369064960, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.3782188231429147, mae:0.4001837795551408, dtw:Not calculated

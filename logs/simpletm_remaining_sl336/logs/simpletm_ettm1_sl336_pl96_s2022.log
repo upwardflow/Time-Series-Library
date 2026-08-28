@@ -1,0 +1,97 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           simpletm_ettm1_sl336_pl96_s2022Model:              SimpleTM            
+
+[1mData Loader[0m
+  Data:               ETTm1               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTm1.csv           Features:           M                   
+  Target:             OT                  Freq:               t                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            32                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         256                 
+  Patience:           3                   Learning Rate:      0.02                
+  Des:                simpletm_ettm1_sl336_pl96_s2022Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SimpleTM ...
+>>>>>>>start training : long_term_forecast_simpletm_ettm1_sl336_pl96_s2022_SimpleTM_ETTm1_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm1_sl336_pl96_s2022_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 34129
+val 11425
+	iters: 100, epoch: 1 | loss: 0.2999437
+	speed: 0.0215s/iter; left time: 26.6766s
+Epoch: 1 cost time: 2.074091672897339
+Epoch: 1, Steps: 134 | Train Loss: 0.3466909 Vali Loss: 0.3994716
+Validation loss decreased (inf --> 0.399472).  Saving model ...
+	iters: 100, epoch: 2 | loss: 0.2552242
+	speed: 0.0204s/iter; left time: 22.6049s
+Epoch: 2 cost time: 1.8106725215911865
+Epoch: 2, Steps: 134 | Train Loss: 0.2693687 Vali Loss: 0.3886789
+Validation loss decreased (0.399472 --> 0.388679).  Saving model ...
+	iters: 100, epoch: 3 | loss: 0.2475593
+	speed: 0.0212s/iter; left time: 20.5797s
+Epoch: 3 cost time: 1.778334140777588
+Epoch: 3, Steps: 134 | Train Loss: 0.2542219 Vali Loss: 0.3798179
+Validation loss decreased (0.388679 --> 0.379818).  Saving model ...
+	iters: 100, epoch: 4 | loss: 0.2253525
+	speed: 0.0207s/iter; left time: 17.3888s
+Epoch: 4 cost time: 1.7403478622436523
+Epoch: 4, Steps: 134 | Train Loss: 0.2483867 Vali Loss: 0.3661714
+Validation loss decreased (0.379818 --> 0.366171).  Saving model ...
+	iters: 100, epoch: 5 | loss: 0.2498550
+	speed: 0.0201s/iter; left time: 14.1978s
+Epoch: 5 cost time: 1.7640833854675293
+Epoch: 5, Steps: 134 | Train Loss: 0.2445716 Vali Loss: 0.3633726
+Validation loss decreased (0.366171 --> 0.363373).  Saving model ...
+	iters: 100, epoch: 6 | loss: 0.2529780
+	speed: 0.0222s/iter; left time: 12.6500s
+Epoch: 6 cost time: 2.033905506134033
+Epoch: 6, Steps: 134 | Train Loss: 0.2417035 Vali Loss: 0.3546864
+Validation loss decreased (0.363373 --> 0.354686).  Saving model ...
+	iters: 100, epoch: 7 | loss: 0.2379924
+	speed: 0.0233s/iter; left time: 10.1755s
+Epoch: 7 cost time: 1.800203800201416
+Epoch: 7, Steps: 134 | Train Loss: 0.2387058 Vali Loss: 0.3622612
+EarlyStopping counter: 1 out of 3
+	iters: 100, epoch: 8 | loss: 0.2386181
+	speed: 0.0210s/iter; left time: 6.3520s
+Epoch: 8 cost time: 1.748227596282959
+Epoch: 8, Steps: 134 | Train Loss: 0.2361264 Vali Loss: 0.3575839
+EarlyStopping counter: 2 out of 3
+	iters: 100, epoch: 9 | loss: 0.2347702
+	speed: 0.0208s/iter; left time: 3.5131s
+Epoch: 9 cost time: 1.7990963459014893
+Epoch: 9, Steps: 134 | Train Loss: 0.2341325 Vali Loss: 0.3575821
+EarlyStopping counter: 3 out of 3
+Early stopping
+VALIDATION_RESULT {"best_epoch": 6, "best_mae": 0.39178292512471347, "best_mse": 0.35468644299854446, "epochs_ran": 9, "metric_version": "element_weighted_v1", "train_duration_seconds": 20.263752558268607, "train_peak_cuda_memory_bytes": 78659072}
+>>>>>>>testing : long_term_forecast_simpletm_ettm1_sl336_pl96_s2022_SimpleTM_ETTm1_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm1_sl336_pl96_s2022_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 11425
+EVALUATION_RESULT {"batches": 45, "elapsed_seconds": 0.28531473875045776, "elements": 7677600, "mae": 0.3432123457159464, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 6.3403275277879505, "mse": 0.29048761245172644, "origin_count": 11425, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints/long_term_forecast_simpletm_ettm1_sl336_pl96_s2022_SimpleTM_ETTm1_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_ettm1_sl336_pl96_s2022_0/test_origin_metrics.npz", "parameter_count": 20536, "peak_cuda_memory_bytes": 56227840, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.29048761245172644, mae:0.3432123457159464, dtw:Not calculated

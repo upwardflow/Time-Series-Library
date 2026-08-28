@@ -10,6 +10,7 @@ import time
 import warnings
 import numpy as np
 import json
+from torch.optim import lr_scheduler
 from utils.dtw_metric import dtw, accelerated_dtw
 from utils.augmentation import run_augmentation, run_augmentation_single
 
@@ -32,6 +33,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return data_set, data_loader
 
     def _select_optimizer(self):
+        if self.args.model == 'SimpleTM':
+            return optim.AdamW(self.model.parameters(), lr=self.args.learning_rate)
         model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
         return model_optim
 
@@ -249,6 +252,15 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         model_optim = self._select_optimizer()
         criterion = self._select_criterion()
+        simpletm_scheduler = None
+        if self.args.model == 'SimpleTM':
+            simpletm_scheduler = lr_scheduler.OneCycleLR(
+                optimizer=model_optim,
+                steps_per_epoch=train_steps,
+                pct_start=self.args.simpletm_pct_start,
+                epochs=self.args.train_epochs,
+                max_lr=self.args.learning_rate,
+            )
 
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
@@ -281,6 +293,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                         outputs = outputs[:, -self.args.pred_len:, f_dim:]
                         batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
                         loss = criterion(outputs, batch_y)
+                        if self.args.model == 'SimpleTM':
+                            module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
+                            loss = loss + self.args.simpletm_l1_weight * module.last_attention_regularizer
                         train_loss.append(loss.item())
                 else:
                     outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
@@ -289,6 +304,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     outputs = outputs[:, -self.args.pred_len:, f_dim:]
                     batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
                     loss = criterion(outputs, batch_y)
+                    if self.args.model == 'SimpleTM':
+                        module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
+                        loss = loss + self.args.simpletm_l1_weight * module.last_attention_regularizer
                     train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
@@ -306,6 +324,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 else:
                     loss.backward()
                     model_optim.step()
+                if simpletm_scheduler is not None:
+                    simpletm_scheduler.step()
 
             print("Epoch: {} cost time: {}".format(epoch + 1, time.time() - epoch_time))
             train_loss = np.average(train_loss)
@@ -320,7 +340,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 print("Early stopping")
                 break
 
-            adjust_learning_rate(model_optim, epoch + 1, self.args)
+            if simpletm_scheduler is None:
+                adjust_learning_rate(model_optim, epoch + 1, self.args)
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))

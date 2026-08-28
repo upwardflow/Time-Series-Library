@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Evaluate every preregistered TimeRole total-history length on the test split.
+"""Evaluate preregistered TimeRole sensitivity checkpoints on the test split.
 
-This is a secondary complete-grid analysis added after the validation-only
-sensitivity study.  It reuses all 72 frozen checkpoints (3 datasets x 2
-horizons x 4 input lengths x 3 seeds), never retrains, and writes results to a
-separate directory so the original validation records remain immutable.
+This secondary complete-grid analysis follows the validation-only sensitivity
+study. It reuses frozen validation-best checkpoints, never retrains, and writes
+test results to a separate directory so the validation records remain immutable.
+The default remains the 72-job total-history grid; ``--factors recent pool``
+selects the remaining 48 boundary/compression jobs.
 """
 
 from __future__ import annotations
@@ -27,7 +28,8 @@ import run_timerole_p0_sensitivity as sensitivity
 
 
 SOURCE = ROOT / "logs" / "timerole_p0" / "sensitivity"
-OUTPUT = ROOT / "logs" / "timerole_p0" / "history_length_test"
+HISTORY_OUTPUT = ROOT / "logs" / "timerole_p0" / "history_length_test"
+CONFIG_OUTPUT = ROOT / "logs" / "timerole_p0" / "boundary_pool_test"
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,20 +37,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gpu", type=int, default=0)
     parser.add_argument("--timeout-seconds", type=int, default=7200)
     parser.add_argument("--source-dir", type=Path, default=SOURCE)
-    parser.add_argument("--output-dir", type=Path, default=OUTPUT)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument(
+        "--factors", nargs="+", choices=("history", "recent", "pool"),
+        default=("history",),
+    )
     parser.add_argument("--max-jobs", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.timeout_seconds < 1 or args.max_jobs < 0:
         parser.error("timeout must be positive; max-jobs cannot be negative")
     args.source_dir = args.source_dir.resolve()
+    if args.output_dir is None:
+        args.output_dir = (
+            HISTORY_OUTPUT if set(args.factors) == {"history"} else CONFIG_OUTPUT
+        )
     args.output_dir = args.output_dir.resolve()
     return args
 
 
-def tasks() -> list[sensitivity.Task]:
-    selected = [task for task in sensitivity.matrix() if task.factor == "history"]
-    assert len(selected) == 72 and len({task.name for task in selected}) == 72
+def tasks(args: argparse.Namespace) -> list[sensitivity.Task]:
+    selected = [task for task in sensitivity.matrix() if task.factor in args.factors]
+    assert selected and len({task.name for task in selected}) == len(selected)
     return selected
 
 
@@ -117,8 +127,8 @@ def run_one(task: sensitivity.Task, args: argparse.Namespace) -> int:
     )
     payload = {
         "status": "completed" if success else "failed",
-        "stage": "secondary_complete_history_grid_test",
-        "analysis_scope": "post_validation_complete_grid_no_length_selection",
+        "stage": "secondary_complete_sensitivity_grid_test",
+        "analysis_scope": "post_validation_complete_grid_no_configuration_selection",
         "model": "TimeRole",
         **task.__dict__,
         "split": "test" if success else None,
@@ -147,9 +157,12 @@ def summarize(selected: list[sensitivity.Task], args: argparse.Namespace, status
         if base.completed(path):
             payload = json.loads(path.read_text(encoding="utf-8"))
             rows.append({
+                "factor": task.factor,
                 "dataset": task.dataset,
                 "horizon": task.horizon,
                 "seq_len": task.seq_len,
+                "recent_len": task.recent_len,
+                "pool": task.pool,
                 "seed": task.seed,
                 "test_mse": payload["mse"],
                 "test_mae": payload["mae"],
@@ -162,8 +175,9 @@ def summarize(selected: list[sensitivity.Task], args: argparse.Namespace, status
             failed += 1
     args.output_dir.mkdir(parents=True, exist_ok=True)
     fields = [
-        "dataset", "horizon", "seq_len", "seed", "test_mse", "test_mae",
-        "validation_mse", "validation_mae", "parameter_count", "record",
+        "factor", "dataset", "horizon", "seq_len", "recent_len", "pool",
+        "seed", "test_mse", "test_mae", "validation_mse", "validation_mae",
+        "parameter_count", "record",
     ]
     with (args.output_dir / "summary.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -171,7 +185,8 @@ def summarize(selected: list[sensitivity.Task], args: argparse.Namespace, status
         writer.writerows(rows)
     base.atomic_write(args.output_dir / "status.json", {
         "status": status,
-        "analysis_scope": "post_validation_complete_grid_no_length_selection",
+        "analysis_scope": "post_validation_complete_grid_no_configuration_selection",
+        "factors": list(args.factors),
         "expected": len(selected),
         "completed": len(rows),
         "failed": failed,
@@ -183,7 +198,7 @@ def summarize(selected: list[sensitivity.Task], args: argparse.Namespace, status
 
 def main() -> int:
     args = parse_args()
-    selected = tasks()
+    selected = tasks(args)
     if args.max_jobs:
         selected = selected[:args.max_jobs]
     for task in selected:
@@ -191,7 +206,10 @@ def main() -> int:
     if args.dry_run:
         for task in selected:
             run_one(task, args)
-        print(json.dumps({"jobs": len(selected), "split": "test", "retrain": False}))
+        print(json.dumps({
+            "jobs": len(selected), "factors": list(args.factors),
+            "split": "test", "retrain": False,
+        }))
         return 0
     for index, task in enumerate(selected, 1):
         print(f"=== [{index}/{len(selected)}] {task.name} ===", flush=True)

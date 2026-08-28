@@ -1,0 +1,81 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           simpletm_etth2_sl336_pl96_s2021Model:              SimpleTM            
+
+[1mData Loader[0m
+  Data:               ETTh2               Root Path:          /home/cwh/Time-Series-Library/dataset/ETT-small
+  Data Path:          ETTh2.csv           Features:           M                   
+  Target:             OT                  Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          0                   
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              5                   Num Kernels:        6                   
+  Enc In:             7                   Dec In:             7                   
+  C Out:              7                   d model:            32                  
+  n heads:            8                   e layers:           1                   
+  d layers:           1                   d FF:               32                  
+  Moving Avg:         25                  Factor:             1                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         256                 
+  Patience:           3                   Learning Rate:      0.006               
+  Des:                simpletm_etth2_sl336_pl96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: SimpleTM ...
+>>>>>>>start training : long_term_forecast_simpletm_etth2_sl336_pl96_s2021_SimpleTM_ETTh2_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl96_s2021_0>>>>>>>>>>>>>>>>>>>>>>>>>>
+train 8209
+val 2785
+Epoch: 1 cost time: 0.7287046909332275
+Epoch: 1, Steps: 33 | Train Loss: 0.5838510 Vali Loss: 0.2634891
+Validation loss decreased (inf --> 0.263489).  Saving model ...
+Epoch: 2 cost time: 0.404543399810791
+Epoch: 2, Steps: 33 | Train Loss: 0.4417435 Vali Loss: 0.2270887
+Validation loss decreased (0.263489 --> 0.227089).  Saving model ...
+Epoch: 3 cost time: 0.4171478748321533
+Epoch: 3, Steps: 33 | Train Loss: 0.3987823 Vali Loss: 0.2283466
+EarlyStopping counter: 1 out of 3
+Epoch: 4 cost time: 0.42612576484680176
+Epoch: 4, Steps: 33 | Train Loss: 0.3781868 Vali Loss: 0.2206430
+Validation loss decreased (0.227089 --> 0.220643).  Saving model ...
+Epoch: 5 cost time: 0.41048455238342285
+Epoch: 5, Steps: 33 | Train Loss: 0.3612905 Vali Loss: 0.2194593
+Validation loss decreased (0.220643 --> 0.219459).  Saving model ...
+Epoch: 6 cost time: 0.36182522773742676
+Epoch: 6, Steps: 33 | Train Loss: 0.3478354 Vali Loss: 0.2161939
+Validation loss decreased (0.219459 --> 0.216194).  Saving model ...
+Epoch: 7 cost time: 0.35251808166503906
+Epoch: 7, Steps: 33 | Train Loss: 0.3428503 Vali Loss: 0.2167927
+EarlyStopping counter: 1 out of 3
+Epoch: 8 cost time: 0.33736348152160645
+Epoch: 8, Steps: 33 | Train Loss: 0.3288021 Vali Loss: 0.2140861
+Validation loss decreased (0.216194 --> 0.214086).  Saving model ...
+Epoch: 9 cost time: 0.361619234085083
+Epoch: 9, Steps: 33 | Train Loss: 0.3275635 Vali Loss: 0.2137262
+Validation loss decreased (0.214086 --> 0.213726).  Saving model ...
+Epoch: 10 cost time: 0.3572506904602051
+Epoch: 10, Steps: 33 | Train Loss: 0.3274050 Vali Loss: 0.2135022
+Validation loss decreased (0.213726 --> 0.213502).  Saving model ...
+VALIDATION_RESULT {"best_epoch": 10, "best_mae": 0.32033754648627855, "best_mse": 0.21350223201762472, "epochs_ran": 10, "metric_version": "element_weighted_v1", "train_duration_seconds": 5.5400886088609695, "train_peak_cuda_memory_bytes": 53435904}
+>>>>>>>testing : long_term_forecast_simpletm_etth2_sl336_pl96_s2021_SimpleTM_ETTh2_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl96_s2021_0<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+test 2785
+EVALUATION_RESULT {"batches": 11, "elapsed_seconds": 0.057152797002345324, "elements": 1871520, "mae": 0.35813374936381925, "metric_version": "element_weighted_v1", "milliseconds_per_batch": 5.19570881839503, "mse": 0.3088656301303553, "origin_count": 2785, "origin_metric_version": "per_forecast_origin_mean_v1", "origin_metrics_path": "/home/cwh/Time-Series-Library/logs/simpletm_remaining_sl336/checkpoints/long_term_forecast_simpletm_etth2_sl336_pl96_s2021_SimpleTM_ETTh2_ftM_sl336_ll0_pl96_dm32_nh8_el1_dl1_df32_expand2_dc4_fc1_ebtimeF_dtTrue_simpletm_etth2_sl336_pl96_s2021_0/test_origin_metrics.npz", "parameter_count": 20592, "peak_cuda_memory_bytes": 42874880, "split": "test", "test_accessed": true, "timerole_intervention": "intact"}
+mse:0.3088656301303553, mae:0.35813374936381925, dtw:Not calculated

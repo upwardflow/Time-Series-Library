@@ -120,6 +120,22 @@ if __name__ == '__main__':
     parser.add_argument('--decomp_method', type=str, default='moving_avg',
                         help='method of series decompsition, only support moving_avg or dft_decomp')
     parser.add_argument('--use_norm', type=int, default=1, help='whether to use normalize; True 1 False 0')
+    parser.add_argument('--simpletm_geom_dropout', type=float, default=0.5,
+                        help='SimpleTM geometric-attention projection dropout')
+    parser.add_argument('--simpletm_learnable_wavelet', type=int, choices=[0, 1], default=1,
+                        help='make the SimpleTM wavelet filters learnable')
+    parser.add_argument('--simpletm_wavelet', type=str, default='db1',
+                        help='PyWavelets filter family used by SimpleTM')
+    parser.add_argument('--simpletm_levels', type=int, default=3,
+                        help='number of stationary-wavelet levels in SimpleTM')
+    parser.add_argument('--simpletm_kernel_size', type=int, default=None,
+                        help='optional learned SimpleTM wavelet kernel size')
+    parser.add_argument('--simpletm_alpha', type=float, default=1.0,
+                        help='inner-product/geometric score mixture in SimpleTM')
+    parser.add_argument('--simpletm_l1_weight', type=float, default=5e-5,
+                        help='weight of the SimpleTM attention-score regularizer')
+    parser.add_argument('--simpletm_pct_start', type=float, default=0.2,
+                        help='OneCycleLR warm-up fraction for SimpleTM')
     parser.add_argument('--down_sampling_layers', type=int, default=0, help='num of down sampling layers')
     parser.add_argument('--down_sampling_window', type=int, default=1, help='down sampling window size')
     parser.add_argument('--down_sampling_method', type=str, default=None,
