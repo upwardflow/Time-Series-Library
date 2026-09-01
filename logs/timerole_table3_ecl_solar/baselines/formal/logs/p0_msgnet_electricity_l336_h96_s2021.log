@@ -1,0 +1,71 @@
+Using GPU
+Args in experiment:
+[1mBasic Config[0m
+  Task Name:          long_term_forecast  Is Training:        1                   
+  Model ID:           p0_msgnet_electricity_l336_h96_s2021Model:              MSGNet              
+
+[1mData Loader[0m
+  Data:               custom              Root Path:          /home/cwh/Time-Series-Library/dataset/electricity
+  Data Path:          electricity.csv     Features:           M                   
+  Target:             0                   Freq:               h                   
+  Checkpoints:        /home/cwh/Time-Series-Library/logs/timerole_table3_ecl_solar/baselines/formal/checkpoints
+
+[1mForecasting Task[0m
+  Seq Len:            336                 Label Len:          48                  
+  Pred Len:           96                  Seasonal Patterns:  Monthly             
+  Inverse:            0                   
+
+[1mModel Parameters[0m
+  Top k:              3                   Num Kernels:        6                   
+  Enc In:             321                 Dec In:             321                 
+  C Out:              321                 d model:            32                  
+  n heads:            4                   e layers:           2                   
+  d layers:           1                   d FF:               64                  
+  Moving Avg:         25                  Factor:             3                   
+  Distil:             1                   Dropout:            0.1                 
+  Embed:              timeF               Activation:         gelu                
+
+[1mRun Parameters[0m
+  Num Workers:        0                   Itr:                1                   
+  Train Epochs:       10                  Batch Size:         8                   
+  Patience:           3                   Learning Rate:      0.0001              
+  Des:                p0_msgnet_electricity_l336_h96_s2021Loss:               MSE                 
+  Lradj:              type1               Use Amp:            0                   
+
+[1mGPU[0m
+  Use GPU:            1                   GPU:                0                   
+  Use Multi GPU:      0                   Devices:            0,1,2,3             
+
+[1mDe-stationary Projector Params[0m
+  P Hidden Dims:      128, 128            P Hidden Layers:    2                   
+
+Use GPU: cuda:0
+🚀 Lazy Loading: MSGNet ...
+Traceback (most recent call last):
+  File "/home/cwh/Time-Series-Library/run.py", line 384, in <module>
+    exp = Exp(args)  # set experiments
+          ^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/exp/exp_long_term_forecasting.py", line 22, in __init__
+    super(Exp_Long_Term_Forecast, self).__init__(args)
+  File "/home/cwh/Time-Series-Library/exp/exp_basic.py", line 23, in __init__
+    self.model = self._build_model().to(self.device)
+                 ^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/exp/exp_long_term_forecasting.py", line 25, in _build_model
+    model = self.model_dict[self.args.model](self.args).float()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/models/MSGNet.py", line 98, in __init__
+    self.model = nn.ModuleList([ScaleGraphBlock(configs) for _ in range(configs.e_layers)])
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/models/MSGNet.py", line 98, in <listcomp>
+    self.model = nn.ModuleList([ScaleGraphBlock(configs) for _ in range(configs.e_layers)])
+                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/models/MSGNet.py", line 36, in __init__
+    GraphBlock(configs.c_out , configs.d_model , configs.conv_channel, configs.skip_channel,
+  File "/home/cwh/Time-Series-Library/layers/MSGBlock.py", line 135, in __init__
+    self.start_conv = nn.Conv2d(1, conv_channel, (d_model - c_out + 1, 1))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 521, in __init__
+    super().__init__(
+  File "/home/cwh/Time-Series-Library/.venv/lib/python3.11/site-packages/torch/nn/modules/conv.py", line 166, in __init__
+    torch.empty(
+RuntimeError: Trying to create tensor with negative dimension -288: [32, 1, -288, 1]

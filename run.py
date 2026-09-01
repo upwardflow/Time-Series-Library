@@ -158,6 +158,18 @@ if __name__ == '__main__':
                         help='run the test split after training; set to 0 during hyperparameter search')
     parser.add_argument('--evaluation_split', choices=['test', 'val'], default='test',
                         help='split used by an is_training=0 checkpoint evaluation')
+    parser.add_argument('--forecast_export_path', type=str, default='',
+                        help='optional compact NPZ path for one forecast origin; empty disables export')
+    parser.add_argument('--forecast_export_origin', type=int, default=0,
+                        help='zero-based deterministic origin index in the selected evaluation split')
+    parser.add_argument('--forecast_export_channel', type=int, default=-1,
+                        help='forecast channel index to export; -1 selects the last channel')
+    parser.add_argument('--forecast_export_context', type=int, default=96,
+                        help='number of observed points immediately before the forecast to export')
+    parser.add_argument('--forecast_export_inverse', action='store_true', default=False,
+                        help='inverse-transform the compact exported curves to the original data scale')
+    parser.add_argument('--forecast_export_only', action='store_true', default=False,
+                        help='evaluate only the requested forecast origin when exporting a compact curve')
 
     # GPU
     parser.add_argument('--use_gpu', action='store_true', default=True, help='use gpu (default: on)')

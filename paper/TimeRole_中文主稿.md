@@ -1,6 +1,6 @@
 # TimeRole：面向多变量长期时间序列预测的历史职责分化建模
 
-*TimeRole: Role-Differentiated Historical Modeling for Multivariate Long-Term Time-Series Forecasting*
+*TimeRole: Role-differentiated historical modeling for multivariate long-term time-series forecasting*
 
 ## 摘要
 

@@ -56,31 +56,78 @@
 \newcommand{\tablecaptionfont}{\small}
 \newcommand{\tablebodyfont}{\fontsize{8}{9.2}\selectfont}
 \newcommand{\wideresulttablefont}{\fontsize{7.5}{8.5}\selectfont}
+\newcommand{\backmattersection}[1]{%
+  \par\addvspace{8pt}%
+  \noindent\textbf{#1}\par\smallskip}
+
+% Publisher-style first-page information block.  The stock elsarticle class
+% stacks the abstract above the keywords, whereas published Neurocomputing
+% articles place ARTICLE INFO/Keywords beside the ABSTRACT.
+\makeatletter
+\renewenvironment{abstract}{%
+  \global\setbox\absbox=\vbox\bgroup
+  \hsize=.73\textwidth
+  \def\baselinestretch{1}%
+  \noindent\textbf{ABSTRACT}\par\medskip
+  \noindent\ignorespaces
+}{\egroup}
+\renewenvironment{keyword}{%
+  \def\sep{\unskip\par}%
+  \global\setbox\keybox=\vbox\bgroup
+  \hsize=.23\textwidth
+  \normalsize\normalfont\def\baselinestretch{1}
+  \parskip=5pt
+  \noindent\textbf{ARTICLE INFO}\par\medskip
+  \noindent\textit{Keywords:}\par\smallskip
+  \raggedright\ignorespaces
+}{\par\egroup}
+\long\def\MaketitleBox{%
+  \resetTitleCounters
+  \def\baselinestretch{1}%
+  \begin{\elsarticletitlealign}%
+    \def\baselinestretch{1}%
+    \Large\@title\par\vskip18pt
+    \ifdoubleblind
+      \vspace*{2pc}%
+    \else
+      \normalsize\elsauthors\par\vskip10pt
+      \footnotesize\itshape\elsaddress\par\vskip36pt
+    \fi
+    \hrule\vskip12pt
+    \noindent\hbox to \textwidth{%
+      \vtop{\hsize=.23\textwidth\unvbox\keybox}%
+      \hfill
+      \vtop{\hsize=.73\textwidth\unvbox\absbox}%
+    }\par\vskip12pt
+    \hrule\vskip12pt
+  \end{\elsarticletitlealign}%
+}
+\makeatother
 
 \begin{document}
 
 \begin{frontmatter}
 
-\title{TimeRole：面向多变量长期时间序列预测的历史职责分化建模\\[0.25em]
-\normalsize TimeRole: Role-Differentiated Historical Modeling for Multivariate Long-Term Time-Series Forecasting}
+\title{TimeRole: Role-differentiated historical modeling for multivariate long-term time-series forecasting}
 
-% TODO: Replace all author and affiliation placeholders before submission.
-\author[aff1]{Author One\corref{cor1}}
-\ead{corresponding.author@example.com}
+\author{Yanlei Wang}
+\author{Jin Zhang}
+\author{Yiqun Lu}
+\author{Junfeng Lei\corref{cor1}}
+\ead{Jflei@whu.edu.cn}
 \cortext[cor1]{Corresponding author}
-\affiliation[aff1]{organization={Department, University},
-                   addressline={Street address},
-                   city={City},
-                   postcode={Postcode},
-                   country={Country}}
+\affiliation{organization={School of Electronic Information, Wuhan University},
+             city={Wuhan},
+             postcode={430072},
+             country={China}}
 
 \begin{abstract}
-扩大回溯范围能够为多变量长期预测提供更早的状态信息，但将全部历史以相同分辨率送入统一预测主干，容易同时增加冗余、状态失配和计算成本。现有方法主要改进长序列编码或多尺度表示，对不同时间范围在最终输出中应承担的异质职责关注不足。本文认为，历史观测距预测起点的位置不仅应决定其表示分辨率，还应决定其预测职责，并据此提出 TimeRole。该模型由图增强状态空间近期预测器（RGSP）和远期历史修正器（DHC）组成：RGSP 保留近期窗口的原始分辨率并生成完整基础预测；DHC 压缩远期历史，通过共享解码器的配对输出差值与变量级注入系数形成条件修正。由此，模型可访问的历史范围与高成本预测主干的直接输入长度得以分离。在多个公开基准和不同预测跨度上的实验表明，TimeRole 在两项误差指标上均保持了稳定且具有竞争力的总体性能。共享 RGSP 的严格对照显示，DHC 在不同数据集、预测跨度和随机种子下均带来一致改善；冻结历史干预进一步表明，这些增益依赖与当前样本匹配的远期内容。将 DHC 接入 TimeXer 后仍能获得稳定的平均误差改善，说明历史职责分化可以适配不同的近期预测主干。资源测量同时表明，压缩修正路径能够减少直接长输入所需的参数量和显存。上述结果支持历史职责分化作为规则采样多变量长期预测中一种兼顾历史覆盖、预测精度与计算成本的建模方式。
+Multivariate long-term time-series forecasting requires models to capture current dynamics while exploiting information distributed across extended histories. Existing approaches often process all observations with a unified backbone and at a common resolution, although recent and distant observations may play different predictive roles. This uniform treatment can blur the distinction between current-state modeling and long-range contextual support, while increasing computation as the input window grows. To address this issue, we propose TimeRole, a history-role-differentiated forecasting framework that partitions the input into a recent window and distant history according to their temporal distance from the forecast origin. Statistics derived from the recent window normalize both segments within a common reference frame. For recent observations, a recent graph-enhanced state-space predictor (RGSP) combines series decomposition, dual-scale patch representations, bidirectional Mamba encoding, and variable-graph propagation to construct a base forecast. For distant observations, a distant-history corrector (DHC) compresses earlier history into low-resolution memory tokens and derives a conditional correction relative to the recent-state forecast. The base forecast and conditional correction are combined in the forecast space and optimized under a unified objective. By assigning recent and distant observations complementary modeling responsibilities, TimeRole decouples accessible historical coverage from the sequence length processed by the computationally intensive forecasting backbone, providing a structured framework for long-context multivariate forecasting.
 \end{abstract}
 
 \begin{keyword}
-多变量时间序列预测 \sep 长期预测 \sep 长上下文 \sep
-历史压缩 \sep 非对称历史建模
+Multivariate time series forecasting \sep Long-term forecasting \sep
+Long-context modeling \sep State-space models \sep History compression
 \end{keyword}
 
 \end{frontmatter}
@@ -88,21 +135,38 @@
 % The complete Chinese manuscript converted from ../TimeRole_中文主稿.md.
 \input{manuscript_zh}
 
-\section*{CRediT authorship contribution statement}
-% TODO: State each author's roles using the CRediT taxonomy.
-\textit{[待填写：按 CRediT 分类列出每位作者的贡献。]}
+\backmattersection{CRediT authorship contribution statement}
+Yanlei Wang: Conceptualization, Methodology, Software, Formal analysis,
+Investigation, Validation, Visualization, Writing -- original draft. Jin Zhang:
+Investigation, Validation, Data curation, Visualization, Writing -- review \&
+editing. Yiqun Lu: Investigation, Formal analysis, Validation, Writing -- review
+\& editing. Junfeng Lei: Conceptualization, Supervision, Project administration,
+Resources, Funding acquisition, Writing -- review \& editing.
 
-\section*{Declaration of competing interest}
-% TODO: Insert the declaration approved by all authors.
-\textit{[待填写：经全体作者确认的利益冲突声明。]}
+\backmattersection{Declaration of competing interest}
+The authors declare that they have no known competing financial interests or
+personal relationships that could have appeared to influence the work reported
+in this paper.
 
-\section*{Data availability}
-% TODO: Identify datasets, repositories, code links, and restrictions.
-\textit{[待填写：数据集、代码仓库、访问链接及可能的限制。]}
+\backmattersection{Data availability}
+The datasets analyzed in this study, including ETTh1, ETTh2, ETTm1, ETTm2,
+and Weather, are publicly available from the
+\href{https://huggingface.co/datasets/thuml/Time-Series-Library}{Time-Series-Library
+dataset collection on Hugging Face}. No new primary datasets were generated in
+this study.
 
-\section*{Acknowledgments}
-% TODO: Add funding and acknowledgments, or remove this section.
-\textit{[待填写：基金信息和致谢；如无则删除本节。]}
+\backmattersection{Acknowledgments}
+\begingroup
+\raggedright
+This work was supported by the National Key Research and Development Program of
+China (Grant No. 2023YFC3705202).\par
+\endgroup
+
+\backmattersection{Declaration of generative AI and AI-assisted technologies in the manuscript preparation process}
+During the preparation of this work, the authors used \mbox{OpenAI's Codex} to assist
+with English translation, language refinement, and manuscript organization.
+After using this tool, the authors reviewed and edited the content as needed and
+take full responsibility for the content of the publication.
 
 \bibliographystyle{elsarticle-num}
 \bibliography{references}

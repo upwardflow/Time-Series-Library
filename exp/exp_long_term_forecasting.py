@@ -87,10 +87,49 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         """Evaluate one frozen checkpoint with optional TimeRole diagnostics."""
         if flag not in {'val', 'test'}:
             raise ValueError(f'unsupported evaluation split: {flag}')
-        _, loader = self._get_data(flag=flag)
+        data_set, loader = self._get_data(flag=flag)
         checkpoint = os.path.join(self.args.checkpoints, setting, 'checkpoint.pth')
         self.model.load_state_dict(torch.load(checkpoint, map_location=self.device))
         self.model.eval()
+
+        export_path = getattr(self.args, 'forecast_export_path', '')
+        export_origin = int(getattr(self.args, 'forecast_export_origin', 0))
+        export_channel = int(getattr(self.args, 'forecast_export_channel', -1))
+        export_context = int(getattr(self.args, 'forecast_export_context', 96))
+        export_inverse = bool(getattr(self.args, 'forecast_export_inverse', False))
+        export_only = bool(getattr(self.args, 'forecast_export_only', False))
+        if export_only and not export_path:
+            raise ValueError('forecast_export_only requires forecast_export_path')
+        if export_path:
+            if flag != 'test':
+                raise ValueError('compact forecast export is supported only on the test split')
+            if not 0 <= export_origin < len(data_set):
+                raise ValueError(
+                    f'forecast_export_origin={export_origin} is outside test range '
+                    f'[0, {len(data_set) - 1}]'
+                )
+            if export_context <= 0 or export_context > self.args.seq_len:
+                raise ValueError(
+                    f'forecast_export_context must be in [1, {self.args.seq_len}], '
+                    f'found {export_context}'
+                )
+            if self.args.features != 'M':
+                raise ValueError('compact forecast export currently requires features=M')
+        if export_only:
+            export_batch_size = int(self.args.batch_size)
+            export_batch_start = (export_origin // export_batch_size) * export_batch_size
+            export_batch_end = min(export_batch_start + export_batch_size, len(data_set))
+            loader = torch.utils.data.DataLoader(
+                torch.utils.data.Subset(
+                    data_set, range(export_batch_start, export_batch_end)
+                ),
+                batch_size=export_batch_size,
+                shuffle=False,
+                num_workers=0,
+                drop_last=False,
+            )
+        exported = None
+        origin_offset = export_batch_start if export_only else 0
 
         squared_error_sum = 0.0
         absolute_error_sum = 0.0
@@ -112,6 +151,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         started = time.perf_counter()
         with torch.no_grad():
             for batch_x, batch_y, batch_x_mark, batch_y_mark in loader:
+                batch_size = int(batch_x.shape[0])
                 batch_x = batch_x.float().to(self.device)
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
@@ -124,6 +164,42 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 f_dim = -1 if self.args.features == 'MS' else 0
                 outputs = outputs[:, -self.args.pred_len:, f_dim:]
                 target = batch_y[:, -self.args.pred_len:, f_dim:]
+                if (
+                    export_path
+                    and exported is None
+                    and origin_offset <= export_origin < origin_offset + batch_size
+                ):
+                    local_index = export_origin - origin_offset
+                    context_all = (
+                        batch_x[local_index, -export_context:, :]
+                        .detach().cpu().numpy()
+                    )
+                    prediction_all = outputs[local_index].detach().cpu().numpy()
+                    target_all = target[local_index].detach().cpu().numpy()
+                    if export_inverse:
+                        if not getattr(data_set, 'scale', False):
+                            raise ValueError(
+                                'forecast_export_inverse requested for an unscaled dataset'
+                            )
+                        context_all = data_set.inverse_transform(context_all)
+                        prediction_all = data_set.inverse_transform(prediction_all)
+                        target_all = data_set.inverse_transform(target_all)
+                    channel = export_channel % target_all.shape[-1]
+                    exported = {
+                        'context': np.asarray(context_all[:, channel], dtype=np.float32),
+                        'prediction': np.asarray(prediction_all[:, channel], dtype=np.float32),
+                        'target': np.asarray(target_all[:, channel], dtype=np.float32),
+                        'origin': np.asarray(export_origin, dtype=np.int64),
+                        'channel': np.asarray(channel, dtype=np.int64),
+                        'context_length': np.asarray(export_context, dtype=np.int64),
+                        'horizon': np.asarray(self.args.pred_len, dtype=np.int64),
+                        'inverse_transformed': np.asarray(export_inverse, dtype=np.bool_),
+                        'dataset': np.asarray(self.args.data),
+                        'data_path': np.asarray(self.args.data_path),
+                        'model': np.asarray(self.args.model),
+                        'setting': np.asarray(setting),
+                        'split': np.asarray(flag),
+                    }
                 difference = outputs - target
                 squared_error_sum += torch.sum(difference * difference).item()
                 absolute_error_sum += torch.sum(torch.abs(difference)).item()
@@ -138,6 +214,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                         torch.mean(torch.abs(difference), dim=(1, 2))
                         .detach().cpu().tolist()
                     )
+                origin_offset += batch_size
 
                 module = self.model.module if isinstance(self.model, nn.DataParallel) else self.model
                 correction = getattr(module, 'last_memory_correction', None)
@@ -183,7 +260,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             ),
             'test_accessed': flag == 'test',
         }
-        if flag == 'test':
+        if flag == 'test' and not export_only:
             origin_path = os.path.join(
                 self.args.checkpoints, setting, 'test_origin_metrics.npz'
             )
@@ -200,6 +277,23 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 'origin_count': len(origin_mse),
                 'origin_metrics_path': origin_path,
             })
+        elif flag == 'test':
+            result.update({
+                'origin_metric_version': 'single_exported_origin_mean_v1',
+                'origin_count': len(origin_mse),
+            })
+        if export_path:
+            if exported is None:
+                raise RuntimeError(
+                    f'forecast origin {export_origin} was not encountered during evaluation'
+                )
+            export_directory = os.path.dirname(os.path.abspath(export_path))
+            os.makedirs(export_directory, exist_ok=True)
+            temporary = os.path.abspath(export_path) + '.tmp'
+            with open(temporary, 'wb') as handle:
+                np.savez_compressed(handle, **exported)
+            os.replace(temporary, os.path.abspath(export_path))
+            result['forecast_export_path'] = os.path.abspath(export_path)
         if correction_count:
             result['memory_correction_mae'] = correction_abs_sum / correction_count
             result['memory_correction_rms'] = (
