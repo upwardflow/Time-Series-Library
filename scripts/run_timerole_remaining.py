@@ -11,12 +11,12 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "scripts" / "run_graphmamba_innovation.py"
+RUNNER = ROOT / "scripts" / "run_timerole_experiment.py"
 OUTPUT = ROOT / "logs" / "timerole_all_horizons"
 DATASETS = ("ETTm1", "ETTm2")
 PRED_LENS = (96, 192, 336, 720)
 REMAINING_PRED_LENS = (96, 192, 336)
-MODELS = (("GraphMambaRecent", "recent336"), ("TimeRole", "timerole"))
+MODELS = (("TimeRoleRecent", "recent336"), ("TimeRole", "timerole"))
 SEED = 2021
 
 

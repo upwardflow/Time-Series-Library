@@ -1,4 +1,4 @@
-"""Patch embedding, graph mixing, and prediction head for GraphMamba."""
+"""Patch embedding, graph mixing, and prediction head for TimeRole."""
 
 from __future__ import annotations
 

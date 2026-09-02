@@ -1,7 +1,5 @@
 import argparse
-import json
 import os
-from pathlib import Path
 import torch
 import torch.backends
 from utils.print_args import print_args
@@ -9,37 +7,29 @@ import random
 import numpy as np
 
 
-def resolve_periodic_local_geometry(data, period, local_patch, local_stride):
-    """Resolve zero-valued local geometry from training-only correlation evidence."""
-    if local_patch < 0 or local_stride < 0:
-        raise ValueError('periodic local patch/stride must be non-negative')
-    if local_patch:
-        return local_patch, local_stride or max(1, local_patch // 2)
-    if local_stride:
-        raise ValueError(
-            'periodic_local_stride must be 0 when periodic_local_patch is auto (0)'
-        )
+TIMEROLE_MODELS = {
+    'TimeRole',
+    'TimeRoleRecent',
+    'TimeRoleFullHistory',
+    'TimeRoleConcat',
+    'TimeRoleNoDiff',
+    'TimeRoleGlobalGate',
+}
 
-    evidence_path = (
-        Path(__file__).resolve().parent
-        / 'logs'
-        / 'graphmamba_local_scale'
-        / f'{data}_local_scale.json'
-    )
-    if not evidence_path.exists():
-        raise FileNotFoundError(
-            f'missing training-derived local-scale evidence: {evidence_path}; '
-            f'run scripts/derive_graphmamba_local_scale.py --dataset {data}'
-        )
-    evidence = json.loads(evidence_path.read_text())
-    evidence_period = int(evidence['period'])
-    if evidence_period != period:
-        raise ValueError(
-            f'local-scale evidence period {evidence_period} does not match '
-            f'periodic_period {period}'
-        )
-    primary = evidence['primary']
-    return int(primary['selected_patch']), int(primary['selected_stride'])
+
+def append_timerole_setting(setting, args):
+    if args.model not in TIMEROLE_MODELS:
+        return setting
+    setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
+               + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
+               + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
+    if args.dual_scale_scan_mode == 'periodic_aligned':
+        setting += f'_smP_p{args.periodic_period}s{args.periodic_period_stride}' \
+                   + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
+                   + f'_a{args.periodic_use_adapter}'
+    else:
+        setting += f'_sm{args.dual_scale_scan_mode}_ss{args.dual_scale_selection}'
+    return setting
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='TimesNet')
@@ -98,14 +88,11 @@ if __name__ == '__main__':
                         help='refined recent-window length for IRPA comparisons')
     parser.add_argument('--irpa_topk', type=int, default=3,
                         help='number of similar historical patches used by IRPA')
-    parser.add_argument('--timerole_hidden_dim', '--cmrhm_hidden_dim',
-                        dest='timerole_hidden_dim', type=int, default=32,
+    parser.add_argument('--timerole_hidden_dim', type=int, default=32,
                         help='hidden dimension of the TimeRole history-correction branch')
-    parser.add_argument('--timerole_memory_pool', '--cmrhm_memory_pool',
-                        dest='timerole_memory_pool', type=int, default=16,
+    parser.add_argument('--timerole_memory_pool', type=int, default=16,
                         help='old-history average-pooling width for TimeRole')
-    parser.add_argument('--timerole_recent_len', '--cmrhm_recent_len',
-                        dest='timerole_recent_len', type=int, default=96,
+    parser.add_argument('--timerole_recent_len', type=int, default=96,
                         help='recent-window length used by TimeRole and its strict control')
     parser.add_argument('--factor', type=int, default=1, help='attn factor')
     parser.add_argument('--distil', action='store_false',
@@ -215,34 +202,34 @@ if __name__ == '__main__':
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
 
-    # GraphMamba
-    parser.add_argument('--stride', type=int, default=8, help='GraphMamba long-patch stride')
+    # TimeRole recent-window predictor
+    parser.add_argument('--stride', type=int, default=8, help='TimeRole coarse-patch stride')
     parser.add_argument('--d_state', type=int, default=16, help='Mamba state dimension')
     parser.add_argument('--mamba_version', type=int, choices=[1, 2], default=1,
-                        help='GraphMamba Mamba implementation: 1=Mamba-1, 2=Mamba2')
+                        help='TimeRole Mamba implementation: 1=Mamba-1, 2=Mamba2')
     parser.add_argument('--mamba_headdim', type=int, default=0,
-                        help='Mamba2 head dimension; 0 selects GraphMamba default')
+                        help='Mamba2 head dimension; 0 selects the TimeRole default')
     parser.add_argument('--mamba_bidirectional', type=int, choices=[0, 1], default=1,
                         help='use forward and backward temporal Mamba branches')
     parser.add_argument('--use_graph', type=int, choices=[0, 1], default=1,
-                        help='enable the GraphMamba graph branch')
+                        help='enable the TimeRole variable-graph branch')
     parser.add_argument('--use_time_mamba', type=int, choices=[0, 1], default=1,
-                        help='enable the GraphMamba temporal branch')
+                        help='enable the TimeRole temporal Mamba branch')
     parser.add_argument('--use_patch', type=int, choices=[0, 1], default=1,
-                        help='enable GraphMamba dual-scale patching')
+                        help='enable TimeRole dual-scale patching')
     parser.add_argument('--use_decomp', type=int, choices=[0, 1], default=1,
-                        help='enable GraphMamba moving-average decomposition')
-    parser.add_argument('--graph_mamba_fusion',
+                        help='enable TimeRole moving-average decomposition')
+    parser.add_argument('--timerole_branch_fusion',
                         choices=['fixed_sum', 'graph_residual_gate'],
                         default='fixed_sum',
-                        help='combine GraphMamba temporal and graph branches')
+                        help='combine TimeRole temporal and graph branches')
     parser.add_argument('--dual_scale_scan_mode',
                         choices=['auto', 'joint', 'independent_shared', 'independent_unshared', 'periodic_aligned'],
-                        default='auto',
-                        help='auto uses validated periodic mode on hourly ETT and independent scans elsewhere')
+                        default='independent_shared',
+                        help='temporal scan routing across the two TimeRole patch scales')
     parser.add_argument('--dual_scale_selection',
                         choices=['dual', 'coarse', 'fine'], default='dual',
-                        help='select both GraphMamba patch grids or one single-scale control')
+                        help='select both TimeRole patch grids or one single-scale control')
     parser.add_argument('--periodic_period', type=int, default=24,
                         help='training-derived stable period used by periodic_aligned')
     parser.add_argument('--periodic_local_patch', type=int, default=0,
@@ -253,10 +240,6 @@ if __name__ == '__main__':
                         help='complete-period patch stride')
     parser.add_argument('--periodic_use_adapter', type=int, choices=[0, 1], default=1,
                         help='enable zero-initialized scale-conditioned input adaptation')
-    parser.add_argument('--period_norm_factor', type=int, choices=[1, 4, 6], default=1,
-                        help='native samples per physical hour for GraphMambaPeriodNorm')
-    parser.add_argument('--period_norm_recent_len', type=int, default=96,
-                        help='native-resolution recent window for GraphMambaPeriodNorm')
     parser.add_argument('--graph_alpha', type=float, default=0.3,
                         help='static graph weight in the static/adaptive graph blend')
     parser.add_argument('--graph_top_k', type=int, default=2,
@@ -271,39 +254,14 @@ if __name__ == '__main__':
                         help='disable the adaptive graph and use only the static graph')
     parser.add_argument('--graph_cache', type=int, choices=[0, 1], default=0,
                         help='cache the generated static adjacency as a .npy file')
-    parser.add_argument('--gc_graph_dim', type=int, default=16,
-                        help='GraphMambaGC dynamic graph query/key dimension')
-    parser.add_argument('--gc_temperature', type=float, default=1.0,
-                        help='GraphMambaGC dynamic adjacency softmax temperature')
-    parser.add_argument('--gc_residual_init', type=float, default=0.5,
-                        help='initial graph-conditioning residual strength in (0, 1)')
-    parser.add_argument('--gc_dynamic_graph', type=int, choices=[0, 1], default=1,
-                        help='enable sample- and patch-adaptive variable graph')
-    parser.add_argument('--gc_symmetric_graph', type=int, choices=[0, 1], default=1,
-                        help='use shared projection for symmetric dynamic affinities')
-    parser.add_argument('--gc_input_modulation', type=int, choices=[0, 1], default=1,
-                        help='condition Mamba input tokens with graph context')
-    parser.add_argument('--gc_direction_fusion', type=int, choices=[0, 1], default=1,
-                        help='condition forward/backward Mamba fusion on graph context')
-    parser.add_argument('--gc_parallel_residual', type=int, choices=[0, 1], default=1,
-                        help='retain the original parallel graph residual beside graph conditioning')
-    parser.add_argument('--af_hidden_dim', type=int, default=32,
-                        help='GraphMambaAF reliability gate hidden dimension')
-    parser.add_argument('--af_mode', choices=['local', 'variable_scale', 'variable_scale_residual', 'variable_scale_lowrank', 'residual_only'],
-                        default='variable_scale_residual',
-                        help='GraphMambaAF fusion/calibration mode')
-    parser.add_argument('--af_rank', type=int, default=16,
-                        help='rank of GraphMambaAF low-rank residual correction')
     parser.add_argument(
-        '--timerole_old_intervention', '--cmrhm_old_intervention',
-        dest='timerole_old_intervention',
+        '--timerole_old_intervention',
         choices=['intact', 'batch_shuffle', 'temporal_shuffle', 'reverse',
                  'recent_mean', 'noise'],
         default='intact',
         help='evaluation-time intervention on the compressed old-history branch',
     )
-    parser.add_argument('--timerole_noise_std', '--cmrhm_noise_std',
-                        dest='timerole_noise_std', type=float, default=1.0,
+    parser.add_argument('--timerole_noise_std', type=float, default=1.0,
                         help='normalized noise scale for the TimeRole noise intervention')
 
     # GCN
@@ -330,15 +288,9 @@ if __name__ == '__main__':
             if args.data in {'ETTh1', 'ETTh2'} and args.periodic_period < args.seq_len
             else 'independent_shared'
         )
-    if args.model == 'GraphMamba' and args.dual_scale_scan_mode == 'periodic_aligned':
-        args.periodic_local_patch, args.periodic_local_stride = (
-            resolve_periodic_local_geometry(
-                args.data,
-                args.periodic_period,
-                args.periodic_local_patch,
-                args.periodic_local_stride,
-            )
-        )
+    if args.model in TIMEROLE_MODELS and args.dual_scale_scan_mode == 'periodic_aligned':
+        args.periodic_local_patch = args.periodic_local_patch or args.patch_len
+        args.periodic_local_stride = args.periodic_local_stride or args.stride
 
     # Apply the requested experiment seed after parsing so --seed controls
     # model initialization, data shuffling, NumPy, and CUDA consistently.
@@ -422,30 +374,7 @@ if __name__ == '__main__':
                         + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                         + f'_tvdt{int(args.tv_dt)}_tvB{int(args.tv_B)}_tvC{int(args.tv_C)}_useD{int(args.use_D)}_{args.des}_{ii}'
 
-            if args.model in {'GraphMamba', 'GraphMambaPeriodNorm', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
-                setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
-                           + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
-                           + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
-                if args.model == 'GraphMamba':
-                    if args.dual_scale_scan_mode == 'periodic_aligned':
-                        setting += f'_smP_p{args.periodic_period}s{args.periodic_period_stride}' \
-                                   + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
-                                   + f'_a{args.periodic_use_adapter}'
-                    else:
-                        setting += f'_sm{args.dual_scale_scan_mode}_ss{args.dual_scale_selection}'
-                if args.model == 'GraphMambaPeriodNorm':
-                    setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
-                               + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
-                               + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
-                               + f'_a{args.periodic_use_adapter}'
-            if args.model == 'GraphMambaGC':
-                setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
-                           + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
-                           + f'_sym{args.gc_symmetric_graph}' \
-                           + f'_im{args.gc_input_modulation}_df{args.gc_direction_fusion}' \
-                           + f'_pr{args.gc_parallel_residual}'
-            if args.model == 'GraphMambaAF':
-                setting += f'_af{args.af_mode}_h{args.af_hidden_dim}_r{args.af_rank}'
+            setting = append_timerole_setting(setting, args)
 
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
@@ -493,30 +422,7 @@ if __name__ == '__main__':
                     + f'_expand{args.expand}_dc{args.d_conv}_nk{args.num_kernels}' \
                     + f'_tvdt{args.tv_dt}_tvB{args.tv_B}_tvC{args.tv_C}_useD{int(args.use_D)}_{args.des}_{ii}'
 
-        if args.model in {'GraphMamba', 'GraphMambaPeriodNorm', 'GraphMambaGC', 'GraphMambaAF', 'GraphMambaSD', 'GraphMambaGF', 'GraphMambaRG'}:
-            setting += f'_patch{args.patch_len}_st{args.stride}_ds{args.d_state}' \
-                       + f'_mv{args.mamba_version}_bi{args.mamba_bidirectional}' \
-                       + f'_ga{args.graph_alpha}_gk{args.graph_top_k}'
-            if args.model == 'GraphMamba':
-                if args.dual_scale_scan_mode == 'periodic_aligned':
-                    setting += f'_smP_p{args.periodic_period}s{args.periodic_period_stride}' \
-                               + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
-                               + f'_a{args.periodic_use_adapter}'
-                else:
-                    setting += f'_sm{args.dual_scale_scan_mode}_ss{args.dual_scale_selection}'
-            if args.model == 'GraphMambaPeriodNorm':
-                setting += f'_pnf{args.period_norm_factor}_r{args.period_norm_recent_len}' \
-                           + f'_p{args.periodic_period}s{args.periodic_period_stride}' \
-                           + f'_l{args.periodic_local_patch}s{args.periodic_local_stride}' \
-                           + f'_a{args.periodic_use_adapter}'
-        if args.model == 'GraphMambaGC':
-            setting += f'_gd{args.gc_graph_dim}_gt{args.gc_temperature}' \
-                       + f'_gr{args.gc_residual_init}_dyn{args.gc_dynamic_graph}' \
-                       + f'_sym{args.gc_symmetric_graph}' \
-                       + f'_im{args.gc_input_modulation}_df{args.gc_direction_fusion}' \
-                       + f'_pr{args.gc_parallel_residual}'
-        if args.model == 'GraphMambaAF':
-            setting += f'_af{args.af_mode}_h{args.af_hidden_dim}_r{args.af_rank}'
+        setting = append_timerole_setting(setting, args)
 
         if args.evaluation_split == 'val':
             print('>>>>>>>evaluating validation checkpoint : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))

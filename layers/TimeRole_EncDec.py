@@ -1,4 +1,4 @@
-"""Mamba encoder blocks used by GraphMamba."""
+"""Mamba encoder blocks used by TimeRole's recent predictor."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def _resolve_mamba_class(mamba_version: int):
     if mamba_version == 2:
         if importlib.util.find_spec("causal_conv1d") is None:
             raise ImportError(
-                "GraphMamba with mamba_version=2 requires causal-conv1d. "
+                "TimeRole with mamba_version=2 requires causal-conv1d. "
                 "Install a causal-conv1d build compatible with the current "
                 "PyTorch and CUDA versions, or use --mamba_version 1."
             )

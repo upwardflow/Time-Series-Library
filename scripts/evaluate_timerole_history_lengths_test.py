@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
-import run_graphmamba_backbone_ablation as base
+import timerole_run_utils as base
 import run_timerole_p0_sensitivity as sensitivity
 
 

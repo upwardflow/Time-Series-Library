@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from models.GraphMambaRecent import Model as RecentModel
+from models.TimeRole import RecentPredictor as RecentModel
 from models.TimeRole import Model as TimeRoleModel
 
 

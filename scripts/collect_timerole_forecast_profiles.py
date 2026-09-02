@@ -52,6 +52,13 @@ def select_median_variation_origin(data_path: Path, dataset: str) -> dict[str, f
 def load_record_command(path: Path) -> list[str]:
     record = json.loads(path.read_text(encoding="utf-8"))
     command = list(record["command"])
+    model_index = command.index("--model") + 1
+    command[model_index] = {
+        "GraphMambaCMRHM": "TimeRole",
+        "CMRHM": "TimeRole",
+        "GraphMambaRecent": "TimeRoleRecent",
+        "GraphMamba": "TimeRoleFullHistory",
+    }.get(command[model_index], command[model_index])
     training_index = command.index("--is_training") + 1
     command[training_index] = "0"
     return command

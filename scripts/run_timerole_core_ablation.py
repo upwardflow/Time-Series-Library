@@ -32,7 +32,7 @@ SEEDS = (2021, 2022, 2023)
 VARIANT_ORDER = ("full", "no_dhc", "no_decomp", "no_patch", "no_mamba", "no_graph")
 VARIANTS = {
     "full": {"label": "TimeRole (Full)", "model": "TimeRole"},
-    "no_dhc": {"label": "w/o DHC", "model": "GraphMambaRecent"},
+    "no_dhc": {"label": "w/o DHC", "model": "TimeRoleRecent"},
     "no_decomp": {"label": "w/o Decomposition", "model": "TimeRole", "use_decomp": 0},
     "no_patch": {"label": "w/o Patch", "model": "TimeRole", "use_patch": 0},
     "no_mamba": {"label": "w/o Mamba", "model": "TimeRole", "use_time_mamba": 0},
@@ -135,7 +135,7 @@ def validate_frozen(payload: dict[str, object], source: Path, dataset: str, hori
     recorded_model = payload.get("model")
     if variant == "full" and recorded_model not in {"TimeRole", "CMRHM", "GraphMambaCMRHM"}:
         failures.append(f"model={recorded_model!r}")
-    if variant == "no_dhc" and recorded_model != expected_model:
+    if variant == "no_dhc" and recorded_model not in {expected_model, "GraphMambaRecent"}:
         failures.append(f"model={recorded_model!r}")
     if failures:
         raise RuntimeError(f"frozen record protocol mismatch: {source}: " + "; ".join(failures))
@@ -200,10 +200,7 @@ def build_command(dataset: str, horizon: int, variant: str, seed: int, gpu: int)
         "--periodic_local_patch", "0", "--periodic_local_stride", "0", "--periodic_period_stride", "12",
         "--periodic_use_adapter", "1", "--graph_alpha", "0.5", "--graph_top_k", "2",
         "--graph_sample_size", "2000", "--graph_sample_method", "uniform", "--static_graph_mode", "weighted",
-        "--graph_cache", "0", "--gc_graph_dim", "16", "--gc_temperature", "1.0",
-        "--gc_residual_init", "0.5", "--gc_dynamic_graph", "1", "--gc_symmetric_graph", "1",
-        "--gc_input_modulation", "1", "--gc_direction_fusion", "1", "--gc_parallel_residual", "1",
-        "--af_hidden_dim", "32", "--af_rank", "16", "--af_mode", "variable_scale_residual",
+        "--graph_cache", "0",
         "--dropout", "0.1", "--batch_size", "32", "--learning_rate", "0.0005", "--lradj", "type1",
         "--train_epochs", "100", "--patience", "6", "--num_workers", "0", "--gpu", str(gpu),
         "--checkpoints", str(OUTPUT / "checkpoints"), "--des", name, "--itr", "1",

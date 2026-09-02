@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ONE_RUN = ROOT / "scripts" / "run_graphmamba_innovation.py"
+ONE_RUN = ROOT / "scripts" / "run_timerole_experiment.py"
 OUTPUT = ROOT / "logs" / "timerole_strict_evidence"
 DATASETS = ("ETTm1", "ETTm2")
 HORIZONS = (96, 192, 336, 720)
@@ -38,7 +38,7 @@ def jobs() -> list[dict]:
     for dataset in DATASETS:
         for horizon in HORIZONS:
             for seed in (2022, 2023):
-                for variant, model in (("r", "GraphMambaRecent"),
+                for variant, model in (("r", "TimeRoleRecent"),
                                        ("c", "TimeRole")):
                     result.append(dict(group="a", dataset=dataset, horizon=horizon,
                                        seed=seed, variant=variant, model=model))
@@ -46,7 +46,7 @@ def jobs() -> list[dict]:
     for dataset in DATASETS:
         for horizon in HORIZONS:
             result.append(dict(group="b", dataset=dataset, horizon=horizon,
-                               seed=2021, variant="raw", model="GraphMamba"))
+                               seed=2021, variant="raw", model="TimeRoleFullHistory"))
     # Group C: full TimeRole is reused; train three isolated controls.
     controls = (("cat", "TimeRoleConcat"),
                 ("nd", "TimeRoleNoDiff"),

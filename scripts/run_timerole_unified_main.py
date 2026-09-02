@@ -71,6 +71,18 @@ def replace_option(command: list[str], option: str, value: str) -> None:
         command.extend((option, value))
 
 
+def normalize_paper_model(command: list[str]) -> None:
+    if "--model" not in command:
+        return
+    index = command.index("--model") + 1
+    command[index] = {
+        "GraphMambaCMRHM": "TimeRole",
+        "CMRHM": "TimeRole",
+        "GraphMambaRecent": "TimeRoleRecent",
+        "GraphMamba": "TimeRoleFullHistory",
+    }.get(command[index], command[index])
+
+
 def reuse_source(dataset: str, horizon: int) -> Path | None:
     if dataset in {"ETTm1", "ETTm2"}:
         return (
@@ -135,6 +147,7 @@ def test_existing_checkpoint(
     source = factorial_source(dataset, horizon)
     validation = json.loads(source.read_text(encoding="utf-8"))
     command = list(validation["command"])
+    normalize_paper_model(command)
     replace_option(command, "--is_training", "0")
     replace_option(command, "--test_after_train", "0")
     replace_option(command, "--evaluation_split", "test")
@@ -200,7 +213,7 @@ def test_existing_checkpoint(
 def train_missing(dataset: str, horizon: int, args: argparse.Namespace) -> int:
     candidate = f"timerole_unified_{dataset.lower()}_p{horizon}_s2021"
     command = [
-        sys.executable, "-u", str(ROOT / "scripts" / "run_graphmamba_innovation.py"),
+        sys.executable, "-u", str(ROOT / "scripts" / "run_timerole_experiment.py"),
         "--model", "TimeRole", "--candidate", candidate,
         "--dataset", dataset, "--pred-len", str(horizon), "--seq-len", "336",
         "--dual-scale-scan-mode", "independent_shared", "--seed", "2021",

@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(ROOT / "scripts"))
 
-import run_graphmamba_backbone_ablation as base
+import timerole_run_utils as base
 
 
 OUTPUT = ROOT / "logs" / "timerole_p0" / "sensitivity"
@@ -125,10 +125,7 @@ def command(task: Task, args: argparse.Namespace) -> list[str]:
         "--periodic_use_adapter", "1", "--graph_alpha", "0.5", "--graph_top_k", "2",
         "--graph_sample_size", "2000", "--graph_sample_method", "uniform",
         "--static_graph_mode", "weighted", "--graph_cache", "1",
-        "--gc_graph_dim", "16", "--gc_temperature", "1.0", "--gc_residual_init", "0.5",
-        "--gc_dynamic_graph", "1", "--gc_symmetric_graph", "1",
-        "--gc_input_modulation", "1", "--gc_direction_fusion", "1",
-        "--gc_parallel_residual", "1", "--dropout", "0.1", "--batch_size", "32",
+        "--dropout", "0.1", "--batch_size", "32",
         "--learning_rate", "0.0005", "--lradj", "type1",
         "--train_epochs", str(args.epochs), "--patience", str(args.patience),
         "--num_workers", "0", "--gpu", str(args.gpu),

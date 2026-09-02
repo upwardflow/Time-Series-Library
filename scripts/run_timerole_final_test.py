@@ -22,6 +22,10 @@ PRED_LENS = (96, 192, 336, 720)
 LABELS = ("recent336", "timerole")
 SEED = 2021
 TEST_PATTERN = re.compile(r"^mse:([-+0-9.eE]+),\s*mae:([-+0-9.eE]+),\s*dtw:")
+MODEL_RENAMES = {
+    "GraphMambaRecent": "TimeRoleRecent",
+    "GraphMamba": "TimeRoleFullHistory",
+}
 
 
 def name(dataset: str, pred_len: int, label: str) -> str:
@@ -40,6 +44,10 @@ def completed(path: Path) -> bool:
 
 def test_command(validation_record: dict[str, object]) -> list[str]:
     command = list(validation_record["command"])
+    model_index = command.index("--model")
+    command[model_index + 1] = MODEL_RENAMES.get(
+        str(command[model_index + 1]), str(command[model_index + 1])
+    )
     index = command.index("--is_training")
     command[index + 1] = "0"
     test_index = command.index("--test_after_train")

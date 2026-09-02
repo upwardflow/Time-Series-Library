@@ -10,10 +10,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / "scripts" / "run_graphmamba_innovation.py"
+RUNNER = ROOT / "scripts" / "run_timerole_experiment.py"
 OUTPUT = ROOT / "logs" / "timerole_validation"
 TASKS = (("ETTm1", 720), ("ETTm2", 720))
-MODELS = (("GraphMambaRecent", "recent336"), ("TimeRole", "timerole"))
+MODELS = (("TimeRoleRecent", "recent336"), ("TimeRole", "timerole"))
 
 
 def main() -> int:

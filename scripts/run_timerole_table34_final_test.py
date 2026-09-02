@@ -29,6 +29,10 @@ DATASETS = ("ETTm1", "ETTm2")
 HORIZONS = (96, 192, 336, 720)
 SEEDS = (2021, 2022, 2023)
 TEST_PATTERN = re.compile(r"^mse:([-+0-9.eE]+),\s*mae:([-+0-9.eE]+),\s*dtw:")
+MODEL_RENAMES = {
+    "GraphMambaRecent": "TimeRoleRecent",
+    "GraphMamba": "TimeRoleFullHistory",
+}
 
 
 def read_completed(path: Path, require_test: bool = False) -> dict | None:
@@ -70,6 +74,10 @@ def test_command(validation_record: dict) -> list[str]:
     test_index = command.index("--test_after_train")
     if command[test_index + 1] != "0":
         raise RuntimeError("Source training command accessed the test split")
+    model_index = command.index("--model")
+    command[model_index + 1] = MODEL_RENAMES.get(
+        str(command[model_index + 1]), str(command[model_index + 1])
+    )
     command[train_index + 1] = "0"
     command[test_index + 1] = "0"
     return command

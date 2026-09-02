@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one auditable ETT GraphMamba innovation experiment."""
+"""Run one auditable TimeRole paper experiment on an ETT dataset."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 RUN_PY = REPO_ROOT / "run.py"
-DEFAULT_OUTPUT = REPO_ROOT / "logs" / "graphmamba_innovation"
+DEFAULT_OUTPUT = REPO_ROOT / "logs" / "timerole_experiment"
 VALIDATION_PATTERN = re.compile(r"^VALIDATION_RESULT\s+(\{.*\})\s*$")
 TEST_PATTERN = re.compile(
     r"^mse:([-+0-9.eE]+),\s*mae:([-+0-9.eE]+),\s*dtw:"
@@ -26,7 +26,18 @@ TEST_PATTERN = re.compile(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=("GraphMamba", "GraphMambaGC", "GraphMambaAF", "GraphMambaSD", "GraphMambaGF", "GraphMambaRG", "GraphMambaSTC", "GraphMambaRecent", "TimeRole", "TimeRoleConcat", "TimeRoleNoDiff", "TimeRoleGlobalGate"), required=True)
+    parser.add_argument(
+        "--model",
+        choices=(
+            "TimeRole",
+            "TimeRoleRecent",
+            "TimeRoleFullHistory",
+            "TimeRoleConcat",
+            "TimeRoleNoDiff",
+            "TimeRoleGlobalGate",
+        ),
+        required=True,
+    )
     parser.add_argument("--candidate", required=True)
     parser.add_argument(
         "--dataset", choices=("ETTh1", "ETTh2", "ETTm1", "ETTm2"), default="ETTh1"
@@ -58,21 +69,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--periodic-period-stride", type=int, default=12)
     parser.add_argument("--periodic-use-adapter", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--gc-graph-dim", type=int, default=16)
-    parser.add_argument("--gc-temperature", type=float, default=1.0)
-    parser.add_argument("--gc-residual-init", type=float, default=0.5)
-    parser.add_argument("--gc-dynamic-graph", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--gc-symmetric-graph", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--gc-input-modulation", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--gc-direction-fusion", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--gc-parallel-residual", type=int, choices=(0, 1), default=1)
-    parser.add_argument("--af-hidden-dim", type=int, default=32)
-    parser.add_argument("--af-rank", type=int, default=16)
-    parser.add_argument(
-        "--af-mode",
-        choices=("local", "variable_scale", "variable_scale_residual", "variable_scale_lowrank", "residual_only"),
-        default="variable_scale_residual",
-    )
     parser.add_argument("--final-test", action="store_true")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--force", action="store_true")
@@ -122,17 +118,6 @@ def build_command(args: argparse.Namespace) -> list[str]:
         "--graph_alpha", str(args.graph_alpha), "--graph_top_k", "2",
         "--graph_sample_size", "2000", "--graph_sample_method", "uniform",
         "--static_graph_mode", "weighted", "--graph_cache", "0",
-        "--gc_graph_dim", str(args.gc_graph_dim),
-        "--gc_temperature", str(args.gc_temperature),
-        "--gc_residual_init", str(args.gc_residual_init),
-        "--gc_dynamic_graph", str(args.gc_dynamic_graph),
-        "--gc_symmetric_graph", str(args.gc_symmetric_graph),
-        "--gc_input_modulation", str(args.gc_input_modulation),
-        "--gc_direction_fusion", str(args.gc_direction_fusion),
-        "--gc_parallel_residual", str(args.gc_parallel_residual),
-        "--af_hidden_dim", str(args.af_hidden_dim),
-        "--af_rank", str(args.af_rank),
-        "--af_mode", args.af_mode,
         "--dropout", str(args.dropout), "--batch_size", str(args.batch_size),
         "--learning_rate", str(args.learning_rate), "--lradj", args.lradj,
         "--train_epochs", str(args.epochs), "--patience", str(args.patience),

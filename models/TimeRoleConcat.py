@@ -6,10 +6,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.GraphMambaRecent import Model as RecentGraphMamba
+from models.TimeRole import RecentPredictor
 
 
-class Model(RecentGraphMamba):
+class Model(RecentPredictor):
     """Decode concatenated recent and compressed-old contexts as a residual."""
 
     def __init__(self, configs):
@@ -20,11 +20,7 @@ class Model(RecentGraphMamba):
         self.old_len = self.input_seq_len - self.recent_len
         self.memory_tokens = self.old_len // self.memory_pool
         hidden_dim = int(
-            getattr(
-                configs,
-                "timerole_hidden_dim",
-                getattr(configs, "cmrhm_hidden_dim", 32),
-            )
+            getattr(configs, "timerole_hidden_dim", 32)
         )
 
         cpu_rng_state = torch.get_rng_state()

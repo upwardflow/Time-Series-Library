@@ -22,11 +22,7 @@ class Model(RecentTimeXer):
             raise ValueError("Old-history length must be divisible by memory_pool")
         self.memory_tokens = self.old_len // self.memory_pool
         hidden_dim = int(
-            getattr(
-                configs,
-                "timerole_hidden_dim",
-                getattr(configs, "cmrhm_hidden_dim", 32),
-            )
+            getattr(configs, "timerole_hidden_dim", 32)
         )
 
         # Do not perturb the backbone/dropout/data-loader RNG trajectory relative
